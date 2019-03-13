@@ -1,12 +1,11 @@
-from word2vec_wrapper import Word2VecWrapper
 import torch
-import numpy as np
 
 
 class BatchIterator:
-    def __init__(self, raw_batch_list, sequence_len=30, batch_size=64, embedding_size=400):
-        self._raw_batch_list = raw_batch_list
-        self._size = len(raw_batch_list)
+    def __init__(self, transcriptions, labels, sequence_len=30, batch_size=50, embedding_size=400):
+        self._transcriptions = transcriptions
+        self._size = len(transcriptions)
+        self._labels = labels
         self._batch_size = batch_size
         self._embedding_size = embedding_size
         self._sequence_len = sequence_len
@@ -15,12 +14,8 @@ class BatchIterator:
         return self._size
 
     def __call__(self):
-        for raw_batch in self._raw_batch_list[1:]:
-            yield self._create_batch(raw_batch)
-
-    def _create_batch(self, raw_batch):
-        batch = np.zeros((self._batch_size, self._sequence_len, self._embedding_size))
-        for sentence_id, sentence in enumerate(raw_batch["inputs"]):
-            batch[sentence_id] = Word2VecWrapper.get_sentence_embedding(sentence, self._sequence_len)
-
-        return batch.swapaxes(0, 1), torch.tensor(np.array(raw_batch["labels"])).float()
+        num_batches = int(self._size/self._batch_size)
+        for i in range(num_batches):
+            transcriptions_batch = self._transcriptions[i*self._batch_size:(i+1)*self._batch_size]
+            labels_batch = self._labels[i*self._batch_size:(i+1)*self._batch_size]
+            yield transcriptions_batch.swapaxes(0, 1), torch.tensor(labels_batch).long()
