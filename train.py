@@ -56,11 +56,11 @@ def run_training(**kwargs):
     epochs_without_improvement = 0
 
     """Creating data generators"""
-    val_transcriptions, val_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_VAL_PATH)
-    train_transcriptions, train_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_TRAIN_PATH)
+    val_transcriptions, val_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_VAL_PATH, seq_len)
+    train_transcriptions, train_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_TRAIN_PATH, seq_len)
 
-    train_iterator = BatchIterator(train_transcriptions, train_labels, batch_size, seq_len)
-    validation_iterator = BatchIterator(val_transcriptions, val_labels, 100, seq_len)
+    train_iterator = BatchIterator(train_transcriptions, train_labels, batch_size)
+    validation_iterator = BatchIterator(val_transcriptions, val_labels, 100)
 
     """Running training"""
     for epoch in range(N_EPOCHS):

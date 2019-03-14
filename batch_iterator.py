@@ -2,13 +2,12 @@ import torch
 
 
 class BatchIterator:
-    def __init__(self, transcriptions, labels, batch_size=50, sequence_len=30, embedding_size=400):
+    def __init__(self, transcriptions, labels, batch_size=50, embedding_size=400):
         self._transcriptions = transcriptions
         self._size = len(transcriptions)
         self._labels = labels
         self._batch_size = batch_size
         self._embedding_size = embedding_size
-        self._sequence_len = sequence_len
 
     def __len__(self):
         return int(self._size/self._batch_size)
