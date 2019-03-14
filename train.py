@@ -94,7 +94,7 @@ def run_training(**kwargs):
     result = f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% | ' \
              f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}% \n Confusion matrix:\n {best_conf_mat}'
     log_major(result)
-
+    log_major("Hyperparameters:{}".format(kwargs))
     with open(result_path, "w") as file:
         file.write(result)
 
