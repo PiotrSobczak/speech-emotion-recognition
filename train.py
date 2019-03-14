@@ -10,7 +10,7 @@ from utils import timeit, log, log_major, log_success
 
 
 N_EPOCHS = 1000
-PATIENCE = 3
+PATIENCE = 10
 REG_RATIO = 0.00001
 
 VERBOSE = True
