@@ -12,10 +12,10 @@ from utils import timeit, log, log_major, log_success
 
 N_EPOCHS = 1000
 PATIENCE = 20
-REG_RATIO = 0.00001
-BATCH_SIZE = 50
-SEQ_LEN = 30
-VERBOSE = False
+REG_RATIO = 0.0001
+BATCH_SIZE = 32
+SEQ_LEN = 25
+VERBOSE = True
 LR = 0.001
 
 MODEL_PATH = "saved_models"
