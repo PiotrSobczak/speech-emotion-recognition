@@ -11,7 +11,7 @@ class BatchIterator:
         self._sequence_len = sequence_len
 
     def __len__(self):
-        return self._size
+        return int(self._size/self._batch_size)
 
     def __call__(self):
         num_batches = int(self._size/self._batch_size)

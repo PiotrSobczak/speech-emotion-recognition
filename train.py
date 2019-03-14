@@ -12,8 +12,8 @@ EMBEDDING_DIM = 400
 HIDDEN_DIM = 800
 OUTPUT_DIM = 1
 DROPOUT = 0.0
-N_EPOCHS = 100
-PATIENCE = 3
+N_EPOCHS = 1000
+PATIENCE = 300
 REG_RATIO=0.00001
 NUM_LAYERS=1
 BIDIRECTIONAL = False
@@ -26,6 +26,7 @@ MODEL_WEIGHTS = "{}/model.torch".format(MODEL_RUN_PATH)
 TRANSCRIPTIONS_VAL_PATH = "data/iemocap_transcriptions_val.json"
 TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
 NUM_CLASSES = 4
+
 
 class RNN(nn.Module):
     def __init__(self, embedding_dim=EMBEDDING_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, num_layers=NUM_LAYERS, config=None, model_config=MODEL_CONFIG, reg_ratio=REG_RATIO):
@@ -74,6 +75,18 @@ def accuracy(preds, y):
     return acc
 
 
+def confusion_matrix(preds, y):
+    """ Returns confusion matrix """
+    assert preds.shape[0] == y.shape[0], "1 dim of predictions and labels must be equal"
+    rounded_preds = torch.argmax(preds,1)
+    conf_mat = np.zeros((NUM_CLASSES, NUM_CLASSES))
+    for i in range(rounded_preds.shape[0]):
+        predicted_class = rounded_preds[i]
+        correct_class = y[i]
+        conf_mat[correct_class][predicted_class] += 1
+    return conf_mat
+
+
 def train(model, iterator, optimizer, criterion, reg_ratio=REG_RATIO):
     epoch_loss = 0
     epoch_acc = 0
@@ -108,6 +121,7 @@ def evaluate(model, iterator, criterion):
     epoch_acc = 0
 
     model.eval()
+    conf_mat = np.zeros((NUM_CLASSES, NUM_CLASSES))
 
     with torch.no_grad():
         for batch, labels in iterator():
@@ -116,11 +130,11 @@ def evaluate(model, iterator, criterion):
             loss = criterion(predictions.float(), labels)
 
             acc = accuracy(predictions, labels)
+            conf_mat += confusion_matrix(predictions, labels)
 
             epoch_loss += loss.item()
             epoch_acc += acc.item()
-
-    return epoch_loss / len(iterator), epoch_acc / len(iterator)
+    return epoch_loss / len(iterator), epoch_acc / len(iterator), conf_mat
 
 
 #@timeit
@@ -156,7 +170,8 @@ def run_training(**kwargs):
         if epochs_without_improvement == PATIENCE:
             break
 
-        valid_loss, valid_acc = evaluate(model, validation_iterator, criterion)
+        valid_loss, valid_acc, conf_mat = evaluate(model, validation_iterator, criterion)
+
         log(f'| Epoch: {epoch:02} | Val Loss: {valid_loss:.4f} | Val Acc: {valid_acc*100:.3f}%')
         if valid_loss < best_valid_loss:
             torch.save(model.state_dict(), model_weights)
@@ -170,9 +185,10 @@ def run_training(**kwargs):
 
         epochs_without_improvement += 1
     
-        #if not epoch % 1:
-        print(f'| Val Loss: {valid_loss:.3f} | Val Acc: {valid_acc*100:.2f}% '
-              f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%')
+        if not epoch % 5:
+            print(f'| Epoch: {epoch+1:02} | Val Loss: {valid_loss:.3f} | Val Acc: {valid_acc*100:.2f}% '
+                f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%')
+            print(conf_mat)
     # model.load_state_dict(torch.load(model_weights))
     # test_loss, test_acc = evaluate(model, test_iterator, criterion)
     # print(f'| Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% |')
