@@ -79,8 +79,8 @@ def run_training(**kwargs):
             best_valid_acc = valid_acc
             best_conf_mat = conf_mat
             epochs_without_improvement = 0
-            log_success("Val loss improved to {:.4f}, val acc: {:.3f}, train loss: {:.4f}, train acc: {:.3f}, saved model to {}.".format(
-                best_valid_loss, best_valid_acc, train_loss, train_acc, model_weights_path
+            log_success(" Epoch: {} | Val loss improved to {:.4f} | val acc: {:.3f} | train loss: {:.4f} | train acc: {:.3f} | saved model to {}.".format(
+                epoch, best_valid_loss, best_valid_acc, train_loss, train_acc, model_weights_path
             ))
 
         train_loss, train_acc = train(model, train_iterator, optimizer, criterion, reg_ratio)
