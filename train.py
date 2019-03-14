@@ -6,11 +6,11 @@ from models import RNN
 from model_ops import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import get_transcription_embeddings_and_labels
-from utils import timeit, log
+from utils import timeit, log, log_major, log_success
 
 
 N_EPOCHS = 1000
-PATIENCE = 300
+PATIENCE = 3
 REG_RATIO = 0.00001
 
 VERBOSE = True
@@ -59,12 +59,13 @@ def run_training(**kwargs):
 
         valid_loss, valid_acc, conf_mat = evaluate(model, validation_iterator, criterion)
 
-        log(f'| Epoch: {epoch:02} | Val Loss: {valid_loss:.4f} | Val Acc: {valid_acc*100:.3f}%', VERBOSE)
         if valid_loss < best_valid_loss:
             torch.save(model.state_dict(), model_weights)
-            print("Val loss improved to {}. Saved model to {}.".format(best_valid_loss, valid_loss, model_weights))
             best_valid_loss = valid_loss
+            best_valid_acc = valid_acc
+            best_conf_mat = conf_mat
             epochs_without_improvement = 0
+            log_success("Val loss improved to {}. Saved model to {}.".format(best_valid_loss, model_weights))
 
         train_loss, train_acc = train(model, train_iterator, optimizer, criterion, kwargs["reg_ratio"])
         # log(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', VERBOSE)
@@ -74,7 +75,11 @@ def run_training(**kwargs):
         if not epoch % 1:
             log(f'| Epoch: {epoch+1} | Val Loss: {valid_loss:.3f} | Val Acc: {valid_acc*100:.2f}% '
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', VERBOSE)
-            log(conf_mat, VERBOSE)
+
+    log_major(f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% '
+        f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%')
+    log_major(best_conf_mat)
+
     # model.load_state_dict(torch.load(model_weights))
     # test_loss, test_acc = evaluate(model, test_iterator, criterion)
     # print(f'| Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% |')

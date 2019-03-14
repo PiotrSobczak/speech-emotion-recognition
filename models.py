@@ -1,7 +1,7 @@
 import torch
 import json
 
-from utils import log
+from utils import log_major
 
 
 NUM_CLASSES = 4
@@ -18,8 +18,8 @@ class RNN(torch.nn.Module):
     def __init__(self, emb_dim=EMB_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, n_layers=N_LAYERS, reg_ratio=0.0,
                  model_config_path=None):
         super().__init__()
-        log("---------------- N_LAYERS={}, HIDDEN_DIM={}, DROPOUT={}, REG_RATIO={}, BIDIR={}----------------".format(
-            n_layers, hidden_dim, dropout, reg_ratio, BIDIRECTIONAL), VERBOSE
+        log_major("---------------- N_LAYERS={}, HIDDEN_DIM={}, DROPOUT={}, REG_RATIO={}, BIDIR={}----------------".format(
+            n_layers, hidden_dim, dropout, reg_ratio, BIDIRECTIONAL)
         )
 
         if model_config_path:
