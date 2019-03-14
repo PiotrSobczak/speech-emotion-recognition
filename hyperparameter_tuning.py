@@ -6,6 +6,7 @@ from train import run_training
 NUM_ITERATIONS = 500
 
 if __name__ == "__main__":
+    run_training()
     for i in range(NUM_ITERATIONS):
         params = {}
         params["n_layers"] = np.random.randint(1, 4)
