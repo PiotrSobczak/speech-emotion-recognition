@@ -1,7 +1,4 @@
 import torch
-import json
-
-from utils import log_major
 
 
 NUM_CLASSES = 4
@@ -15,17 +12,8 @@ VERBOSE = True
 
 
 class RNN(torch.nn.Module):
-    def __init__(self, emb_dim=EMB_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, n_layers=N_LAYERS, reg_ratio=0.0,
-                 model_config_path=None):
+    def __init__(self, emb_dim=EMB_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, n_layers=N_LAYERS):
         super().__init__()
-        log_major("---------------- N_LAYERS={}, HIDDEN_DIM={}, DROPOUT={}, REG_RATIO={}, BIDIR={}----------------".format(
-            n_layers, hidden_dim, dropout, reg_ratio, BIDIRECTIONAL)
-        )
-
-        if model_config_path:
-            json.dump({"emb_dim": emb_dim, "hidden_dim": hidden_dim, "dropout": dropout,
-                       "reg_ratio": reg_ratio, "n_layers": n_layers}, open(model_config_path, "w"))
-
         fc_size = hidden_dim * 2 if BIDIRECTIONAL else hidden_dim
         self.lstm = torch.nn.LSTM(emb_dim, hidden_dim, num_layers=n_layers, bidirectional=BIDIRECTIONAL, dropout=dropout)
         self.fc = torch.nn.Linear(fc_size, NUM_CLASSES)

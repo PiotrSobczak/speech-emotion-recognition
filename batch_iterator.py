@@ -1,13 +1,8 @@
 import torch
 
-from utils import log_major
-
 
 class BatchIterator:
     def __init__(self, transcriptions, labels, batch_size=50, sequence_len=30, embedding_size=400):
-        log_major("---------------- BATCH_SIZE={}, SEQ_LEN={}, EMB_DIM={}----------------".format(
-            batch_size, sequence_len, embedding_size)
-        )
         self._transcriptions = transcriptions
         self._size = len(transcriptions)
         self._labels = labels

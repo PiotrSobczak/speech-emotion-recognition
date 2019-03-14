@@ -1,6 +1,7 @@
 import torch
 import os
 from time import gmtime, strftime
+import json
 
 from models import RNN
 from model_ops import evaluate, train
@@ -15,17 +16,19 @@ REG_RATIO = 0.00001
 BATCH_SIZE = 50
 SEQ_LEN = 30
 VERBOSE = True
+LR = 0.001
 
 MODEL_PATH = "saved_models"
-MODEL_RUN_PATH = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
 TRANSCRIPTIONS_VAL_PATH = "data/iemocap_transcriptions_val.json"
 TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
 
 
 @timeit
 def run_training(**kwargs):
-    model_weights = "{}/model.torch".format(kwargs.get("model_run_path", MODEL_RUN_PATH))
-    os.makedirs(MODEL_RUN_PATH, exist_ok=True)
+    model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    model_weights_path = "{}/model.torch".format(kwargs.get("model_run_path", model_run_path))
+    model_config_path = "{}/model.config".format(model_run_path)
+    os.makedirs(model_run_path, exist_ok=True)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if device == "cuda":
@@ -33,15 +36,19 @@ def run_training(**kwargs):
     else:
         torch.set_default_tensor_type('torch.FloatTensor')
 
-    kwargs["model_config_path"] = "{}/model.config".format(MODEL_RUN_PATH)
-    kwargs["reg_ratio"] = kwargs.get("reg_ratio", REG_RATIO)
+    log_major(kwargs)
+    json.dump(kwargs, open(model_config_path, "w"))
+
     batch_size = kwargs.pop("batch_size", BATCH_SIZE)
     seq_len = kwargs.pop("seq_len", SEQ_LEN)
+    lr = kwargs.pop("lr", LR)
+    reg_ratio = kwargs.pop("reg_ratio", REG_RATIO)
+
     model = RNN(**kwargs)
     model.float()
     model = model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = torch.nn.CrossEntropyLoss()
     criterion = criterion.to(device)
 
@@ -63,15 +70,14 @@ def run_training(**kwargs):
         valid_loss, valid_acc, conf_mat = evaluate(model, validation_iterator, criterion)
 
         if valid_loss < best_valid_loss:
-            torch.save(model.state_dict(), model_weights)
+            torch.save(model.state_dict(), model_weights_path)
             best_valid_loss = valid_loss
             best_valid_acc = valid_acc
             best_conf_mat = conf_mat
             epochs_without_improvement = 0
-            log_success("Val loss improved to {}. Saved model to {}.".format(best_valid_loss, model_weights))
+            log_success("Val loss improved to {}. Saved model to {}.".format(best_valid_loss, model_weights_path))
 
-        train_loss, train_acc = train(model, train_iterator, optimizer, criterion, kwargs["reg_ratio"])
-        # log(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', VERBOSE)
+        train_loss, train_acc = train(model, train_iterator, optimizer, criterion, reg_ratio)
 
         epochs_without_improvement += 1
     
@@ -83,7 +89,7 @@ def run_training(**kwargs):
         f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%')
     log_major(best_conf_mat)
 
-    # model.load_state_dict(torch.load(model_weights))
+    # model.load_state_dict(torch.load(model_weights_path))
     # test_loss, test_acc = evaluate(model, test_iterator, criterion)
     # print(f'| Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% |')
 
