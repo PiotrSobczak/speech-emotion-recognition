@@ -12,7 +12,8 @@ from utils import timeit, log, log_major, log_success
 N_EPOCHS = 1000
 PATIENCE = 10
 REG_RATIO = 0.00001
-
+BATCH_SIZE = 50
+SEQ_LEN = 30
 VERBOSE = True
 
 MODEL_PATH = "saved_models"
@@ -34,6 +35,8 @@ def run_training(**kwargs):
 
     kwargs["model_config_path"] = "{}/model.config".format(MODEL_RUN_PATH)
     kwargs["reg_ratio"] = kwargs.get("reg_ratio", REG_RATIO)
+    batch_size = kwargs.pop("batch_size", BATCH_SIZE)
+    seq_len = kwargs.pop("seq_len", SEQ_LEN)
     model = RNN(**kwargs)
     model.float()
     model = model.to(device)
@@ -49,8 +52,8 @@ def run_training(**kwargs):
     val_transcriptions, val_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_VAL_PATH)
     train_transcriptions, train_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_TRAIN_PATH)
 
-    train_iterator = BatchIterator(train_transcriptions, train_labels)
-    validation_iterator = BatchIterator(val_transcriptions, val_labels)
+    train_iterator = BatchIterator(train_transcriptions, train_labels, batch_size, seq_len)
+    validation_iterator = BatchIterator(val_transcriptions, val_labels, 100, seq_len)
 
     """Running training"""
     for epoch in range(N_EPOCHS):
