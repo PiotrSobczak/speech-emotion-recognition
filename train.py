@@ -15,7 +15,7 @@ PATIENCE = 20
 REG_RATIO = 0.00001
 BATCH_SIZE = 50
 SEQ_LEN = 30
-VERBOSE = True
+VERBOSE = False
 LR = 0.001
 
 MODEL_PATH = "saved_models"
@@ -37,7 +37,7 @@ def run_training(**kwargs):
     else:
         torch.set_default_tensor_type('torch.FloatTensor')
 
-    log_major(kwargs)
+    log_major("Hyperparameters:{}".format(kwargs))
     json.dump(kwargs, open(model_config_path, "w"))
 
     batch_size = kwargs.pop("batch_size", BATCH_SIZE)
@@ -63,6 +63,9 @@ def run_training(**kwargs):
     train_iterator = BatchIterator(train_transcriptions, train_labels, batch_size)
     validation_iterator = BatchIterator(val_transcriptions, val_labels, 100)
 
+    train_loss=999
+    train_acc=0
+
     """Running training"""
     for epoch in range(N_EPOCHS):
         if epochs_without_improvement == PATIENCE:
@@ -76,7 +79,9 @@ def run_training(**kwargs):
             best_valid_acc = valid_acc
             best_conf_mat = conf_mat
             epochs_without_improvement = 0
-            log_success("Val loss improved to {}. Saved model to {}.".format(best_valid_loss, model_weights_path))
+            log_success("Val loss improved to {:.4f}, val acc: {:.3f}, train loss: {:.4f}, train acc: {:.3f}, saved model to {}.".format(
+                best_valid_loss, best_valid_acc, train_loss, train_acc, model_weights_path
+            ))
 
         train_loss, train_acc = train(model, train_iterator, optimizer, criterion, reg_ratio)
 
@@ -86,7 +91,8 @@ def run_training(**kwargs):
             log(f'| Epoch: {epoch+1} | Val Loss: {valid_loss:.3f} | Val Acc: {valid_acc*100:.2f}% '
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', VERBOSE)
 
-    result = f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}% \n Confusion matrix:\n {best_conf_mat}'
+    result = f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% | ' \
+             f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}% \n Confusion matrix:\n {best_conf_mat}'
     log_major(result)
 
     with open(result_path, "w") as file:
