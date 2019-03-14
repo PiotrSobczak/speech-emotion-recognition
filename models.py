@@ -12,10 +12,10 @@ VERBOSE = True
 
 
 class RNN(torch.nn.Module):
-    def __init__(self, emb_dim=EMB_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, n_layers=N_LAYERS):
+    def __init__(self, emb_dim=EMB_DIM, hidden_dim=HIDDEN_DIM, dropout=DROPOUT, n_layers=N_LAYERS, bidirectional=BIDIRECTIONAL):
         super().__init__()
         fc_size = hidden_dim * 2 if BIDIRECTIONAL else hidden_dim
-        self.lstm = torch.nn.LSTM(emb_dim, hidden_dim, num_layers=n_layers, bidirectional=BIDIRECTIONAL, dropout=dropout)
+        self.lstm = torch.nn.LSTM(emb_dim, hidden_dim, num_layers=n_layers, bidirectional=bidirectional, dropout=dropout)
         self.fc = torch.nn.Linear(fc_size, NUM_CLASSES)
         self.dropout = torch.nn.Dropout(dropout)
 

@@ -26,8 +26,9 @@ TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
 @timeit
 def run_training(**kwargs):
     model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/model.torch".format(kwargs.get("model_run_path", model_run_path))
-    model_config_path = "{}/model.config".format(model_run_path)
+    model_weights_path = "{}/model.torch".format(model_run_path)
+    model_config_path = "{}/config.json".format(model_run_path)
+    result_path = "{}/result.txt".format(model_run_path)
     os.makedirs(model_run_path, exist_ok=True)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -85,9 +86,12 @@ def run_training(**kwargs):
             log(f'| Epoch: {epoch+1} | Val Loss: {valid_loss:.3f} | Val Acc: {valid_acc*100:.2f}% '
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', VERBOSE)
 
-    log_major(f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% '
-        f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%')
-    log_major(best_conf_mat)
+    result = f'| Epoch: {epoch+1} | Val Loss: {best_valid_loss:.3f} | Val Acc: {best_valid_acc*100:.2f}% | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}% \n Confusion matrix:\n {best_conf_mat}'
+    log_major(result)
+
+    with open(result_path, "w") as file:
+        file.write(result)
+
 
     # model.load_state_dict(torch.load(model_weights_path))
     # test_loss, test_acc = evaluate(model, test_iterator, criterion)
