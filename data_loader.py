@@ -28,6 +28,7 @@ def save_iemocap_transcriptions():
     with open(TRANSCRIPTIONS_TRAIN_PATH, "w") as file:
         json.dump(transcriptions[VAL_SIZE:], file)
 
+
 def create_balanced_iemocap():
     """Keeping only Neutral, Happiness, Sadness, Anger classes. Merging excited samples into happiness class"""
     iemocap = pickle.load(open(IEMOCAP_PATH, "rb"))
