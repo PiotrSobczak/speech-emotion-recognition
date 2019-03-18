@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 class BatchIterator:
@@ -18,3 +19,9 @@ class BatchIterator:
             transcriptions_batch = self._transcriptions[i*self._batch_size:(i+1)*self._batch_size]
             labels_batch = self._labels[i*self._batch_size:(i+1)*self._batch_size]
             yield transcriptions_batch.swapaxes(0, 1), torch.tensor(labels_batch).long()
+
+    def shuffle(self):
+        new_order = np.random.permutation(self._size)
+        self._transcriptions = self._transcriptions[new_order]
+        self._labels = self._labels[new_order]
+        

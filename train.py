@@ -68,6 +68,7 @@ def run_training(**kwargs):
 
     """Running training"""
     for epoch in range(N_EPOCHS):
+        train_iterator.shuffle()
         if epochs_without_improvement == PATIENCE:
             break
 
