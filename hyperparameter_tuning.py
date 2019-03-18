@@ -1,7 +1,7 @@
 import numpy as np
 
 from train import run_training
-
+from config import Config
 
 NUM_ITERATIONS = 500
 
@@ -18,4 +18,4 @@ if __name__ == "__main__":
         params["batch_size"] = np.random.randint(32,256)
         params["seq_len"] = np.random.randint(20, 30)
         params["bidirectional"] = False#bool(np.random.randint(0,2))
-        run_training(**params)
+        run_training(Config(**params))
