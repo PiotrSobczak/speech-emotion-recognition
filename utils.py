@@ -18,9 +18,9 @@ def log(log_message, verbose=False):
         print("[{}]{}".format(strftime("%Y-%m-%d_%H:%M:%S", gmtime()), log_message))
 
 
-def log_success(log_message):
-    log("\033[32m{}\033[0m".format(log_message), True)
+def log_success(log_message, verbose=True):
+    log("\033[32m{}\033[0m".format(log_message), verbose)
 
 
-def log_major(log_message):
-    log("\033[1m{}\033[0m".format(log_message), True)
+def log_major(log_message, verbose=True):
+    log("\033[1m{}\033[0m".format(log_message), verbose)
