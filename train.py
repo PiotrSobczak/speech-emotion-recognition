@@ -11,9 +11,9 @@ from utils import timeit, log, log_major, log_success
 
 
 N_EPOCHS = 1000
-PATIENCE = 20
-REG_RATIO = 0.0001
-BATCH_SIZE = 32
+PATIENCE = 50
+REG_RATIO = 0.0015
+BATCH_SIZE = 256
 SEQ_LEN = 25
 VERBOSE = True
 LR = 0.001
