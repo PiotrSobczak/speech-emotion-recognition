@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 from word2vec_wrapper import Word2VecWrapper
-
+from preprocessing import Preprocessor
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
@@ -44,14 +44,14 @@ def create_balanced_iemocap():
 
 def get_transcription_embeddings_and_labels(transcriptions_path, sequence_len=30, embedding_size=400):
     transcriptions = json.load(open(transcriptions_path, "r"))
-    # labels = np.zeros((len(transcriptions), len(CLASS_TO_ID)))
     labels = np.zeros(len(transcriptions))
     transcriptions_emb = np.zeros((len(transcriptions), sequence_len, embedding_size))
     for i, obj in enumerate(transcriptions):
         class_id = CLASS_TO_ID[obj["emotion"]]
         # labels[i][class_id] = 1
         labels[i] = class_id
-        transcriptions_emb[i] = Word2VecWrapper.get_sentence_embedding(obj["transcription"], sequence_len)
+        preprocessed_transcription = Preprocessor.preprocess_one(obj["transcription"])
+        transcriptions_emb[i] = Word2VecWrapper.get_sentence_embedding(preprocessed_transcription, sequence_len)
     return transcriptions_emb, labels
 
 
