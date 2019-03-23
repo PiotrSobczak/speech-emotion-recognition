@@ -48,13 +48,3 @@ Confusion matrix:
 ```
 *classes in order: [Neutral, Happiness, Sadness, Anger]  
 *row - correct class, column - prediction
-
-# How to run training with default parameters?
-```
-python3 train.py
-```
-
-# How to run hyperparameter tuning?
-```
-python3 hyperparameter_tuning.py
-```
