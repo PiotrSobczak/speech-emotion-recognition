@@ -26,9 +26,11 @@ def run_training(cfg, train_data, train_labels, val_data, val_labels):
     """Choosing hardware"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if device == "cuda":
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        print("Using GPU. Setting default tensor type to torch.cuda.FloatTensor")
+        torch.set_default_tensor_type("torch.cuda.FloatTensor")
     else:
-        torch.set_default_tensor_type('torch.FloatTensor')
+        print("Using CPU. Setting default tensor type to torch.FloatTensor")
+        torch.set_default_tensor_type("torch.FloatTensor")
 
     json.dump(cfg.to_json(), open(model_config_path, "w"))
 
