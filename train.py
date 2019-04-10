@@ -89,6 +89,14 @@ def run_training(cfg, train_data, train_labels, val_data, val_labels):
 
 
 if __name__ == "__main__":
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == "cuda":
+        print("Using GPU. Setting default tensor type to torch.cuda.FloatTensor")
+        torch.set_default_tensor_type("torch.cuda.FloatTensor")
+    else:
+        print("Using CPU. Setting default tensor type to torch.FloatTensor")
+        torch.set_default_tensor_type("torch.FloatTensor")
+
     """Training linguistic data"""
     # cfg = LinguisticConfig()
     # val_features, val_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)

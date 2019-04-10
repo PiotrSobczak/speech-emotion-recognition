@@ -50,10 +50,10 @@ class AcousticConfig(Config):
         self.reg_ratio = kwargs.get("reg_ratio", 0.0015)
         self.lr = kwargs.get("lr", 0.001)
         self.batch_size = kwargs.get("batch_size", 256)
-        self.patience = kwargs.get("patience", 50)
+        self.patience = kwargs.get("patience", 30)
         self.n_epochs = kwargs.get("n_epochs", 1000)
 
         """Other parameters"""
-        self.verbose = kwargs.get("verbose", True)
+        self.verbose = kwargs.get("verbose", False)
         self.model_weights_name = "acoustic_model.torch"
         self.model_config_name = "acoustic_model.json"

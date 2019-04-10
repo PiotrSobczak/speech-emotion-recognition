@@ -18,7 +18,7 @@ class BatchIterator:
         for i in range(num_batches):
             transcriptions_batch = self._transcriptions[i*self._batch_size:(i+1)*self._batch_size]
             labels_batch = self._labels[i*self._batch_size:(i+1)*self._batch_size]
-            yield transcriptions_batch.swapaxes(0, 1), torch.tensor(labels_batch).long()
+            yield transcriptions_batch.swapaxes(0, 1), torch.cuda.LongTensor(labels_batch)
 
     def shuffle(self):
         new_order = np.random.permutation(self._size)
