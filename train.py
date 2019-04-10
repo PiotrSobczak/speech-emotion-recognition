@@ -105,10 +105,10 @@ if __name__ == "__main__":
     """Loading acoustic data"""
     cfg = AcousticConfig()
     mfcc_features, mfcc_labels = load_mfcc_dataset()
-    train_features = mfcc_features[:VAL_SIZE]
-    train_labels = mfcc_labels[:VAL_SIZE]
-    val_features = mfcc_features[VAL_SIZE:]
-    val_labels = mfcc_labels[VAL_SIZE:]
+    val_features = mfcc_features[:VAL_SIZE]
+    val_labels = mfcc_labels[:VAL_SIZE]
+    train_features = mfcc_features[VAL_SIZE:]
+    train_labels = mfcc_labels[VAL_SIZE:]
 
     """Running training"""
     run_training(cfg, train_features, train_labels, val_features, val_labels)
