@@ -66,14 +66,15 @@ def save_iemocap_mfcc_features(num_mfcc_features=26, window_len=0.025, winstep=0
 
 @timeit
 def normalize_dataset(mfcc_features):
-    averages = np.zeros(mfcc_features.shape[2])
-    ranges = np.zeros(mfcc_features.shape[2])
+    averages = np.zeros((mfcc_features.shape[0], mfcc_features.shape[1], mfcc_features.shape[2]))
+    ranges = np.zeros((mfcc_features.shape[0], mfcc_features.shape[1], mfcc_features.shape[2]))
 
-    for i in range(mfcc_features.shape[2]):
-        averages[i] = (mfcc_features[:, :, i].max() + mfcc_features[:, :, i].min()) / 2
-        ranges[i] = (mfcc_features[:, :, i].max() - mfcc_features[:, :, i].min()) / 2
+    for i in range(mfcc_features.shape[0]):
+        averages[i, :, :] = (mfcc_features[i].max() + mfcc_features[i].min()) / 2
+        ranges[i, :, :] = (mfcc_features[i].max() - mfcc_features[i].min()) / 2
 
-    return (mfcc_features - averages) / ranges.T
+    """NOTE, skipping subtracking average in order to leave zeros. Try normalization before zero-padding."""
+    return mfcc_features / ranges
 
 
 @timeit
@@ -93,7 +94,6 @@ def load_mfcc_dataset():
 
     """Normalizing dataset"""
     mfcc_features = normalize_dataset(mfcc_features)
-    assert mfcc_features.max() == 1.0 and mfcc_features.min() == -1.0
 
     """Splittng dataset into train/val/test sets"""
     val_features = mfcc_features[:VAL_SIZE]
