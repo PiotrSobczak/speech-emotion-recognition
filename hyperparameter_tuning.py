@@ -33,12 +33,10 @@ if __name__ == "__main__":
         params["bidirectional"] = bool(np.random.randint(0,2))
         
         mfcc_features, mfcc_labels = load_mfcc_dataset()
-        train_features = mfcc_features[:VAL_SIZE]
-        train_labels = mfcc_labels[:VAL_SIZE]
-        val_features = mfcc_features[VAL_SIZE:]
-        val_labels = mfcc_labels[VAL_SIZE:]
-        
-        import pdb;pdb.set_trace()
+        val_features= mfcc_features[:VAL_SIZE]
+        val_labels= mfcc_labels[:VAL_SIZE]
+        train_features = mfcc_features[VAL_SIZE:]
+        train_labels = mfcc_labels[VAL_SIZE:]
         
         """Running training"""
 
