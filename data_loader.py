@@ -34,7 +34,7 @@ def save_iemocap_transcriptions():
         json.dump(transcriptions[VAL_SIZE:], file)
 
 @timeit
-def save_iemocap_mfcc_features(num_mfcc_features=32, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
+def save_iemocap_mfcc_features(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
     """
     https://arxiv.org/pdf/1706.00612.pdf
     The mean length of all turns is 4.46s (max.: 34.1s, min.: 0.6s). S
@@ -57,7 +57,7 @@ def save_iemocap_mfcc_features(num_mfcc_features=32, window_len=0.025, winstep=0
     for i, obj in enumerate(iemocap):
         class_id = CLASS_TO_ID[obj["emotion"]]
         labels[i] = class_id
-        mfcc_features = mfcc(obj["signal"], sample_rate, window_len, winstep)
+        mfcc_features = mfcc(obj["signal"], sample_rate, window_len, winstep, num_mfcc_features)
         mfcc_features = mfcc_features[:seq_len]
         mfcc_features_dataset[i, :mfcc_features.shape[0], :mfcc_features.shape[1]] = mfcc_features
 
@@ -65,19 +65,43 @@ def save_iemocap_mfcc_features(num_mfcc_features=32, window_len=0.025, winstep=0
     np.save(MFCC_LABELS_PATH, labels)
 
 @timeit
+def normalize_dataset(mfcc_features):
+    averages = np.zeros(mfcc_features.shape[2])
+    ranges = np.zeros(mfcc_features.shape[2])
+
+    for i in range(mfcc_features.shape[2]):
+        averages[i] = (mfcc_features[:, :, i].max() + mfcc_features[:, :, i].min()) / 2
+        ranges[i] = (mfcc_features[:, :, i].max() - mfcc_features[:, :, i].min()) / 2
+
+    return (mfcc_features - averages) / ranges.T
+
+
+@timeit
 def load_mfcc_dataset():
+    """Extracting & Saving dataset"""
     if not isfile(MFCC_FEATURES_PATH) or not isfile(MFCC_LABELS_PATH):
         print("Dataset not found. Creating dataset...")
         save_iemocap_mfcc_features()
         print("Dataset created. Loading dataset...")
 
+    """Loading dataset"""
     mfcc_features = np.load(MFCC_FEATURES_PATH)
     mfcc_labels = np.load(MFCC_LABELS_PATH)
     print("Dataset loaded.")
 
     assert mfcc_features.shape[0] == mfcc_labels.shape[0]
 
-    return mfcc_features, mfcc_labels
+    """Normalizing dataset"""
+    mfcc_features = normalize_dataset(mfcc_features)
+    assert mfcc_features.max() == 1.0 and mfcc_features.min() == -1.0
+
+    """Splittng dataset into train/val/test sets"""
+    val_features = mfcc_features[:VAL_SIZE]
+    val_labels = mfcc_labels[:VAL_SIZE]
+    train_features = mfcc_features[VAL_SIZE:]
+    train_labels = mfcc_labels[VAL_SIZE:]
+
+    return val_features, val_labels, train_features, train_labels
 
 
 def create_balanced_iemocap():
@@ -106,8 +130,4 @@ def load_transcription_embeddings_with_labels(transcriptions_path, sequence_len=
 
 
 if __name__ == "__main__":
-    mfcc_features, mfcc_labels = load_mfcc_dataset()
-    train_features = mfcc_features[:VAL_SIZE]
-    train_labels = mfcc_labels[:VAL_SIZE]
-    val_features = mfcc_features[VAL_SIZE:]
-    val_labels = mfcc_labels[VAL_SIZE:]
+    val_features, val_labels, train_features, train_labels = load_mfcc_dataset()

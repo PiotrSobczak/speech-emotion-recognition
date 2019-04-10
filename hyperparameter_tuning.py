@@ -28,7 +28,7 @@ if __name__ == "__main__":
         params["dropout2"] = 0.5 + np.random.rand() * 0.45
         params["reg_ratio"] = 0.0 #np.random.rand()*0.0015
         params["lr"] = 0.001 #np.random.rand() * (10 ** (np.random.randint(-2, 0)))
-        params["batch_size"] = 96 #np.random.randint(32,256)
+        params["batch_size"] = 96 #np.random.randint(26,256)
         #params["seq_len"] = np.random.randint(20, 30)
         params["bidirectional"] = bool(np.random.randint(0,2))
         
