@@ -13,18 +13,18 @@ class LinguisticConfig(Config):
     def __init__(self, **kwargs):
         """Network hyperparameters"""
         self.n_layers = kwargs.get("n_layers", 1)
-        self.hidden_dim = kwargs.get("hidden_dim", 700)
+        self.hidden_dim = kwargs.get("hidden_dim", 200)
         self.emb_dim = kwargs.get("emb_dim", 400)
         self.num_classes = kwargs.get("num_classes", NUM_CLASSES)
-        self.dropout = kwargs.get("dropout", 0.5)
-        self.dropout2 = kwargs.get("dropout2", 0.5)
+        self.dropout = kwargs.get("dropout", 0.75)
+        self.dropout2 = kwargs.get("dropout2", 0.4)
         self.bidirectional = kwargs.get("bidirectional", False)
 
         """Training hyperparameters"""
         self.seq_len = kwargs.get("seq_len", 25)
         self.reg_ratio = kwargs.get("reg_ratio", 0.0015)
         self.lr = kwargs.get("lr", 0.001)
-        self.batch_size = kwargs.get("batch_size", 256)
+        self.batch_size = kwargs.get("batch_size", 128)
         self.patience = kwargs.get("patience", 50)
         self.n_epochs = kwargs.get("n_epochs", 1000)
 
