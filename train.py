@@ -6,9 +6,9 @@ import json
 from models import RNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
-from data_loader import get_transcription_embeddings_and_labels
+from data_loader import load_transcription_embeddings_with_labels, load_mfcc_dataset, VAL_SIZE
 from utils import timeit, log, log_major, log_success
-from config import Config
+from config import LinguisticConfig, AcousticConfig
 
 
 MODEL_PATH = "saved_models"
@@ -16,10 +16,10 @@ TRANSCRIPTIONS_VAL_PATH = "data/iemocap_transcriptions_val.json"
 TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
 
 
-def run_training(cfg):
+def run_training(cfg, train_data, train_labels, val_data, val_labels):
     model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/model.torch".format(model_run_path)
-    model_config_path = "{}/config.json".format(model_run_path)
+    model_weights_path = "{}/{}".format(model_run_path, cfg.model_weights_name)
+    model_config_path = "{}/{}".format(model_run_path, cfg.model_config_name)
     result_path = "{}/result.txt".format(model_run_path)
     os.makedirs(model_run_path, exist_ok=True)
 
@@ -42,13 +42,9 @@ def run_training(cfg):
     criterion = torch.nn.CrossEntropyLoss()
     criterion = criterion.to(device)
 
-    """Loading data"""
-    val_transcriptions, val_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)
-    train_transcriptions, train_labels = get_transcription_embeddings_and_labels(TRANSCRIPTIONS_TRAIN_PATH, cfg.seq_len)
-
     """Creating data generators"""
-    train_iterator = BatchIterator(train_transcriptions, train_labels, cfg.batch_size)
-    validation_iterator = BatchIterator(val_transcriptions, val_labels, 100)
+    train_iterator = BatchIterator(train_data, train_labels, cfg.batch_size)
+    validation_iterator = BatchIterator(val_data, val_labels, 100)
 
     train_loss = 999
     best_val_loss = 999
@@ -91,4 +87,18 @@ def run_training(cfg):
 
 
 if __name__ == "__main__":
-    run_training(Config())
+    """Training linguistic data"""
+    # cfg = LinguisticConfig()
+    # val_features, val_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)
+    # train_features, train_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_TRAIN_PATH, cfg.seq_len)
+
+    """Loading acoustic data"""
+    cfg = AcousticConfig()
+    mfcc_features, mfcc_labels = load_mfcc_dataset()
+    train_features = mfcc_features[:VAL_SIZE]
+    train_labels = mfcc_labels[:VAL_SIZE]
+    val_features = mfcc_features[VAL_SIZE:]
+    val_labels = mfcc_labels[VAL_SIZE:]
+
+    """Running training"""
+    run_training(cfg, train_features, train_labels, val_features, val_labels)

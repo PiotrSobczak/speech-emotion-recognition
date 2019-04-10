@@ -22,7 +22,7 @@ class RNN(torch.nn.Module):
 
     def forward(self, x):
         """ x = [sent len, batch size, emb dim] """
-        x = torch.cuda.FloatTensor(x)
+        x = torch.Tensor(x)
         x = self.dropout(x)
 
         """ output      = [sent len, batch size, hid dim * num directions]
