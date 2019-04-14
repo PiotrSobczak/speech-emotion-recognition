@@ -77,6 +77,36 @@ def normalize_dataset(mfcc_features):
     return mfcc_features / ranges
 
 
+def split_dataset_skip(dataset_features, dataset_labels):
+    """Splittng dataset into train/val sets by taking every nth sample to val set"""
+    skip_ratio = int(dataset_features.shape[0]/VAL_SIZE) + 1
+    all_indexes = list(range(dataset_features.shape[0]))
+    val_indexes = list(range(0, dataset_features.shape[0], skip_ratio))
+    train_indexes = list(set(all_indexes) - set(val_indexes))
+
+    val_features = dataset_features[val_indexes]
+    val_labels = dataset_labels[val_indexes]
+    train_features = dataset_features[train_indexes]
+    train_labels = dataset_labels[train_indexes]
+
+    assert val_features.shape[0] == val_labels.shape[0]
+    assert train_features.shape[0] == train_labels.shape[0]
+
+    return val_features, val_labels, train_features, train_labels
+
+
+def split_dataset_head(dataset_features, dataset_labels):
+    """Splittng dataset into train/val sets by taking n first samples to val set"""
+    val_features = dataset_features[:VAL_SIZE]
+    val_labels = dataset_labels[:VAL_SIZE]
+    train_features = dataset_features[VAL_SIZE:]
+    train_labels = dataset_labels[VAL_SIZE:]
+
+    assert val_features.shape[0] == val_labels.shape[0]
+    assert train_features.shape[0] == train_labels.shape[0]
+
+    return val_features, val_labels, train_features, train_labels
+
 @timeit
 def load_mfcc_dataset():
     """Extracting & Saving dataset"""
@@ -92,16 +122,7 @@ def load_mfcc_dataset():
 
     assert mfcc_features.shape[0] == mfcc_labels.shape[0]
 
-    """Normalizing dataset"""
-    mfcc_features = normalize_dataset(mfcc_features)
-
-    """Splittng dataset into train/val/test sets"""
-    val_features = mfcc_features[:VAL_SIZE]
-    val_labels = mfcc_labels[:VAL_SIZE]
-    train_features = mfcc_features[VAL_SIZE:]
-    train_labels = mfcc_labels[VAL_SIZE:]
-
-    return val_features, val_labels, train_features, train_labels
+    return split_dataset_skip(mfcc_features, mfcc_labels)
 
 
 def create_balanced_iemocap():
