@@ -3,7 +3,7 @@ import os
 from time import gmtime, strftime
 import json
 
-from models import RNN
+from models import AttentionModel as RNN#AttnDecoderRNN as RNN#, RNN,
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_transcription_embeddings_with_labels, load_mfcc_dataset, VAL_SIZE
