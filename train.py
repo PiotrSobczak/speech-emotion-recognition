@@ -3,7 +3,7 @@ import os
 from time import gmtime, strftime
 import json
 
-from models import AttentionModel as RNN#AttnDecoderRNN as RNN#, RNN,
+from models import AttentionModel as RNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_transcription_embeddings_with_labels, load_mfcc_dataset, VAL_SIZE
@@ -98,13 +98,13 @@ if __name__ == "__main__":
         torch.set_default_tensor_type("torch.FloatTensor")
 
     """Training linguistic data"""
-    # cfg = LinguisticConfig()
-    # val_features, val_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)
-    # train_features, train_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_TRAIN_PATH, cfg.seq_len)
+    cfg = LinguisticConfig()
+    val_features, val_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)
+    train_features, train_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_TRAIN_PATH, cfg.seq_len)
 
     """Loading acoustic data"""
-    cfg = AcousticConfig()
-    val_features, val_labels, train_features, train_labels = load_mfcc_dataset()
+    #cfg = AcousticConfig()
+    #val_features, val_labels, train_features, train_labels = load_mfcc_dataset()
 
     """Running training"""
     run_training(cfg, train_features, train_labels, val_features, val_labels)
