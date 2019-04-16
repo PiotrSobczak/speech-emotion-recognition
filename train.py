@@ -2,18 +2,17 @@ import torch
 import os
 from time import gmtime, strftime
 import json
+import argparse
 
 from models import AttentionModel as RNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
-from data_loader import load_transcription_embeddings_with_labels, load_mfcc_dataset, VAL_SIZE
+from data_loader import load_linguistic_dataset, load_acoustic_dataset, VAL_SIZE
 from utils import timeit, log, log_major, log_success
 from config import LinguisticConfig, AcousticConfig
 
 
 MODEL_PATH = "saved_models"
-TRANSCRIPTIONS_VAL_PATH = "data/iemocap_transcriptions_val.json"
-TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
 
 
 def run_training(cfg, train_data, train_labels, val_data, val_labels):
@@ -89,6 +88,19 @@ def run_training(cfg, train_data, train_labels, val_data, val_labels):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--model_type", type=str, default="linguistic")
+    args = parser.parse_args()
+
+    if args.model_type == "linguistic":
+        cfg = LinguisticConfig()
+        val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
+    elif args.model_type == "acoustic":
+        cfg = AcousticConfig()
+        val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
+    else:
+        raise Exception("model_type parameter has to be one of [acoustic|linguistic]")
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if device == "cuda":
         print("Using GPU. Setting default tensor type to torch.cuda.FloatTensor")
@@ -96,15 +108,6 @@ if __name__ == "__main__":
     else:
         print("Using CPU. Setting default tensor type to torch.FloatTensor")
         torch.set_default_tensor_type("torch.FloatTensor")
-
-    """Training linguistic data"""
-    cfg = LinguisticConfig()
-    val_features, val_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_VAL_PATH, cfg.seq_len)
-    train_features, train_labels = load_transcription_embeddings_with_labels(TRANSCRIPTIONS_TRAIN_PATH, cfg.seq_len)
-
-    """Loading acoustic data"""
-    #cfg = AcousticConfig()
-    #val_features, val_labels, train_features, train_labels = load_mfcc_dataset()
 
     """Running training"""
     run_training(cfg, train_features, train_labels, val_features, val_labels)

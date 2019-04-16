@@ -1,5 +1,4 @@
 import pickle
-import json
 import numpy as np
 from os.path import isfile
 from python_speech_features import mfcc
@@ -8,33 +7,34 @@ from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
 from utils import timeit
 
-
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
-TRANSCRIPTIONS_PATH = "data/iemocap_transcriptions.json"
-TRANSCRIPTIONS_VAL_PATH = "data/iemocap_transcriptions_val.json"
-TRANSCRIPTIONS_TRAIN_PATH = "data/iemocap_transcriptions_train.json"
-MFCC_FEATURES_PATH = "data/mfcc_features.npy"
-MFCC_LABELS_PATH = "data/mfcc_labels.npy"
-VAL_SIZE = 1531
 
+LINGUISTIC_DATASET_PATH = "data/linguistic_features.npy"
+LINGUISTIC_LABELS_PATH = "data/linguistic_labels.npy"
+ACOUSTIC_FEATURES_PATH = "data/mfcc_features.npy"
+ACOUSTIC_LABELS_PATH = "data/mfcc_labels.npy"
+
+VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
 
 
-def save_iemocap_transcriptions():
-    """Load IEMOCAP and save transcriptions only in format: [{"emotion":E, "transcription": t},..] """
-    iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
-    transcriptions = [{"transcription": dic["transcription"], "emotion": dic["emotion"]} for dic in iemocap]
-    with open(TRANSCRIPTIONS_PATH, "w") as file:
-        json.dump(transcriptions, file)
-    with open(TRANSCRIPTIONS_VAL_PATH, "w") as file:
-        json.dump(transcriptions[:VAL_SIZE], file)
-    with open(TRANSCRIPTIONS_TRAIN_PATH, "w") as file:
-        json.dump(transcriptions[VAL_SIZE:], file)
+def create_balanced_iemocap():
+    """Keeping only Neutral, Happiness, Sadness, Anger classes. Merging excited samples into happiness class"""
+    iemocap = pickle.load(open(IEMOCAP_PATH, "rb"))
+    balanced_iemocap = []
+    for dic in iemocap:
+        if dic["emotion"] in USED_CLASSES:
+            if dic["emotion"] == "exc":
+                dic["emotion"] = "hap"
+            balanced_iemocap.append(dic)
+    with open(IEMOCAP_BALANCED_PATH, "wb") as file:
+        pickle.dump(np.array(balanced_iemocap), file)
+
 
 @timeit
-def save_iemocap_mfcc_features(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
+def create_acoustic_dataset(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
     """
     https://arxiv.org/pdf/1706.00612.pdf
     The mean length of all turns is 4.46s (max.: 34.1s, min.: 0.6s). S
@@ -61,8 +61,8 @@ def save_iemocap_mfcc_features(num_mfcc_features=26, window_len=0.025, winstep=0
         mfcc_features = mfcc_features[:seq_len]
         mfcc_features_dataset[i, :mfcc_features.shape[0], :mfcc_features.shape[1]] = mfcc_features
 
-    np.save(MFCC_FEATURES_PATH, mfcc_features_dataset)
-    np.save(MFCC_LABELS_PATH, labels)
+    np.save(ACOUSTIC_FEATURES_PATH, mfcc_features_dataset)
+    np.save(ACOUSTIC_LABELS_PATH, labels)
 
 @timeit
 def normalize_dataset(mfcc_features):
@@ -108,38 +108,27 @@ def split_dataset_head(dataset_features, dataset_labels):
     return val_features, val_labels, train_features, train_labels
 
 @timeit
-def load_mfcc_dataset():
+def load_acoustic_dataset():
     """Extracting & Saving dataset"""
-    if not isfile(MFCC_FEATURES_PATH) or not isfile(MFCC_LABELS_PATH):
-        print("Dataset not found. Creating dataset...")
-        save_iemocap_mfcc_features()
-        print("Dataset created. Loading dataset...")
+    if not isfile(ACOUSTIC_FEATURES_PATH) or not isfile(ACOUSTIC_LABELS_PATH):
+        print("Acoustic dataset not found. Creating dataset...")
+        create_acoustic_dataset()
+        print("Acoustic dataset created. Loading dataset...")
 
-    """Loading dataset"""
-    mfcc_features = np.load(MFCC_FEATURES_PATH)
-    mfcc_labels = np.load(MFCC_LABELS_PATH)
-    print("Dataset loaded.")
+    """Loading acoustic dataset"""
+    mfcc_features = np.load(ACOUSTIC_FEATURES_PATH)
+    mfcc_labels = np.load(ACOUSTIC_LABELS_PATH)
+    print("Acoustic dataset loaded.")
 
     assert mfcc_features.shape[0] == mfcc_labels.shape[0]
 
     return split_dataset_skip(mfcc_features, mfcc_labels)
 
 
-def create_balanced_iemocap():
-    """Keeping only Neutral, Happiness, Sadness, Anger classes. Merging excited samples into happiness class"""
-    iemocap = pickle.load(open(IEMOCAP_PATH, "rb"))
-    balanced_iemocap = []
-    for dic in iemocap:
-        if dic["emotion"] in USED_CLASSES:
-            if dic["emotion"] == "exc":
-                dic["emotion"] = "hap"
-            balanced_iemocap.append(dic)
-    with open(IEMOCAP_BALANCED_PATH, "wb") as file:
-        pickle.dump(np.array(balanced_iemocap), file)
-
-
-def load_transcription_embeddings_with_labels(transcriptions_path, sequence_len=30, embedding_size=400):
-    transcriptions = json.load(open(transcriptions_path, "r"))
+@timeit
+def create_linguistic_dataset(sequence_len=30, embedding_size=400):
+    iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
+    transcriptions = [{"transcription": dic["transcription"], "emotion": dic["emotion"]} for dic in iemocap]
     labels = np.zeros(len(transcriptions))
     transcriptions_emb = np.zeros((len(transcriptions), sequence_len, embedding_size))
     for i, obj in enumerate(transcriptions):
@@ -147,8 +136,28 @@ def load_transcription_embeddings_with_labels(transcriptions_path, sequence_len=
         labels[i] = class_id
         preprocessed_transcription = Preprocessor.preprocess_one(obj["transcription"])
         transcriptions_emb[i] = Word2VecWrapper.get_sentence_embedding(preprocessed_transcription, sequence_len)
-    return transcriptions_emb, labels
+
+    np.save(LINGUISTIC_DATASET_PATH, transcriptions_emb)
+    np.save(LINGUISTIC_LABELS_PATH, labels)
+
+
+@timeit
+def load_linguistic_dataset():
+    """Extracting & Saving dataset"""
+    if not isfile(LINGUISTIC_DATASET_PATH) or not isfile(LINGUISTIC_LABELS_PATH):
+        print("Linguistic dataset not found. Creating dataset...")
+        create_linguistic_dataset()
+        print("Linguistic dataset created. Loading dataset...")
+
+    """Loading linguistic dataset"""
+    linguistic_dataset = np.load(LINGUISTIC_DATASET_PATH)
+    linguistic_labels = np.load(LINGUISTIC_LABELS_PATH)
+    print("Linguistic dataset loaded.")
+
+    assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
+
+    return split_dataset_head(linguistic_dataset, linguistic_labels)
 
 
 if __name__ == "__main__":
-    val_features, val_labels, train_features, train_labels = load_mfcc_dataset()
+    val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
