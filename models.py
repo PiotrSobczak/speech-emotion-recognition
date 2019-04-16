@@ -105,13 +105,22 @@ class AttentionModel(torch.nn.Module):
 
         --------
 
+<<<<<<< HEAD
         """
 
+=======
+        """        
+>>>>>>> a830e8adf2b766941f944f9f4f38bb1495ea8553
         self.batch_size = cfg.batch_size
         self.output_size = cfg.num_classes
         self.hidden_size = cfg.hidden_dim
         self.embedding_length = cfg.emb_dim
 
+<<<<<<< HEAD
+=======
+        self.dropout = torch.nn.Dropout(cfg.dropout)
+        self.dropout2 = torch.nn.Dropout(cfg.dropout2)
+>>>>>>> a830e8adf2b766941f944f9f4f38bb1495ea8553
         self.lstm = nn.LSTM(self.embedding_length, self.hidden_size)
         self.label = nn.Linear(self.hidden_size, self.output_size)
 
@@ -172,10 +181,18 @@ class AttentionModel(torch.nn.Module):
         #     c_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
 
         input = torch.Tensor(input)
+<<<<<<< HEAD
+=======
+        input = self.dropout(input)
+>>>>>>> a830e8adf2b766941f944f9f4f38bb1495ea8553
         output, (final_hidden_state, final_cell_state) = self.lstm(input)#, ( h_0, c_0))  # final_hidden_state.size() = (1, batch_size, hidden_size)
         output = output.permute(1, 0, 2)  # output.size() = (batch_size, num_seq, hidden_size)
 
         attn_output = self.attention_net(output, final_hidden_state)
+<<<<<<< HEAD
+=======
+        attn_output = self.dropout2(attn_output)
+>>>>>>> a830e8adf2b766941f944f9f4f38bb1495ea8553
         logits = self.label(attn_output)
 
         return logits
