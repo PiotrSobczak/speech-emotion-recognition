@@ -39,14 +39,14 @@ class AcousticConfig(Config):
         """Network hyperparameters"""
         self.n_layers = kwargs.get("n_layers", 1)
         self.hidden_dim = kwargs.get("hidden_dim", 100)
-        self.emb_dim = kwargs.get("emb_dim", 26)
+        self.emb_dim = kwargs.get("emb_dim", 34)
         self.num_classes = kwargs.get("num_classes", NUM_CLASSES)
         self.dropout = kwargs.get("dropout", 0.0)
         self.dropout2 = kwargs.get("dropout2", 0.0)
         self.bidirectional = kwargs.get("bidirectional", False)
 
         """Training hyperparameters"""
-        self.seq_len = kwargs.get("seq_len", 800)
+        self.seq_len = kwargs.get("seq_len", 200)
         self.reg_ratio = kwargs.get("reg_ratio", 0.0015)
         self.lr = kwargs.get("lr", 0.001)
         self.batch_size = kwargs.get("batch_size", 256)
