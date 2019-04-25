@@ -6,14 +6,15 @@ from python_speech_features import mfcc
 from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
 from utils import timeit
+from iemocap_utils.features import stFeatureExtraction
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
 
 LINGUISTIC_DATASET_PATH = "data/linguistic_features.npy"
 LINGUISTIC_LABELS_PATH = "data/linguistic_labels.npy"
-ACOUSTIC_FEATURES_PATH = "data/mfcc_features.npy"
-ACOUSTIC_LABELS_PATH = "data/mfcc_labels.npy"
+ACOUSTIC_FEATURES_PATH = "data/acoustic_features.npy"
+ACOUSTIC_LABELS_PATH = "data/acoustic_labels.npy"
 
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
@@ -34,7 +35,7 @@ def create_balanced_iemocap():
 
 
 @timeit
-def create_acoustic_dataset(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
+def create_acoustic_dataset_mfcc(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
     """
     https://arxiv.org/pdf/1706.00612.pdf
     The mean length of all turns is 4.46s (max.: 34.1s, min.: 0.6s). S
@@ -108,6 +109,54 @@ def split_dataset_head(dataset_features, dataset_labels):
     return val_features, val_labels, train_features, train_labels
 
 @timeit
+def create_acoustic_dataset(framerate=16000):
+    def calculate_acoustic_features(frames, freq, options):
+        # double the window duration
+        window_sec = 0.08
+        window_n = int(freq * window_sec)
+
+        st_f = stFeatureExtraction(frames, freq, window_n, window_n / 2)
+
+        if st_f.shape[1] > 2:
+            i0 = 1
+            i1 = st_f.shape[1] - 1
+            if i1 - i0 < 1:
+                i1 = i0 + 1
+
+            deriv_st_f = np.zeros((st_f.shape[0], i1 - i0), dtype=float)
+            for i in range(i0, i1):
+                i_left = i - 1
+                i_right = i + 1
+                deriv_st_f[:st_f.shape[0], i - i0] = st_f[:, i]
+            return deriv_st_f
+        elif st_f.shape[1] == 2:
+            deriv_st_f = np.zeros((st_f.shape[0], 1), dtype=float)
+            deriv_st_f[:st_f.shape[0], 0] = st_f[:, 0]
+            return deriv_st_f
+        else:
+            deriv_st_f = np.zeros((st_f.shape[0], 1), dtype=float)
+            deriv_st_f[:st_f.shape[0], 0] = st_f[:, 0]
+            return deriv_st_f
+
+    with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
+        iemocap = pickle.load(handle)
+
+    acoustic_labels = []
+    acoustic_features = []
+
+    for i, ses_mod in enumerate(iemocap):
+        acoustic_labels.append(CLASS_TO_ID[ses_mod['emotion']])
+        x_head = ses_mod['signal']
+        st_features = calculate_acoustic_features(x_head, framerate, None)
+        st_features, _ = pad_sequence_into_array(st_features, maxlen=200)
+        acoustic_features.append(st_features.T)
+        if (i % 100 == 0):
+            print(i)
+
+    np.save(ACOUSTIC_LABELS_PATH, np.array(acoustic_labels))
+    np.save(ACOUSTIC_FEATURES_PATH, np.array(acoustic_features))
+
+@timeit
 def load_acoustic_dataset():
     """Extracting & Saving dataset"""
     if not isfile(ACOUSTIC_FEATURES_PATH) or not isfile(ACOUSTIC_LABELS_PATH):
@@ -157,6 +206,34 @@ def load_linguistic_dataset():
     assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
 
     return split_dataset_head(linguistic_dataset, linguistic_labels)
+
+
+def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', value=0.):
+
+    Nsamples = len(Xs)
+    if maxlen is None:
+        lengths = [s.shape[0] for s in Xs]    # 'sequences' must be list, 's' must be numpy array, len(s) return the first dimension of s
+        maxlen = np.max(lengths)
+
+    Xout = np.ones(shape=[Nsamples, maxlen] + list(Xs[0].shape[1:]), dtype=Xs[0].dtype) * np.asarray(value, dtype=Xs[0].dtype)
+    Mask = np.zeros(shape=[Nsamples, maxlen], dtype=Xout.dtype)
+    for i in range(Nsamples):
+        x = Xs[i]
+        if truncating == 'pre':
+            trunc = x[-maxlen:]
+        elif truncating == 'post':
+            trunc = x[:maxlen]
+        else:
+            raise ValueError("Truncating type '%s' not understood" % truncating)
+        if padding == 'post':
+            Xout[i, :len(trunc)] = trunc
+            Mask[i, :len(trunc)] = 1
+        elif padding == 'pre':
+            Xout[i, -len(trunc):] = trunc
+            Mask[i, -len(trunc):] = 1
+        else:
+            raise ValueError("Padding type '%s' not understood" % padding)
+    return Xout, Mask
 
 
 if __name__ == "__main__":
