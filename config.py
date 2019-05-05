@@ -33,6 +33,12 @@ class LinguisticConfig(Config):
         self.model_weights_name = "linguistic_model.torch"
         self.model_config_name = "linguistic_model.json"
 
+    @staticmethod
+    def from_json(config_json):
+        cfg = LinguisticConfig()
+        cfg.hidden_dim = config_json["hidden_dim"]
+        return cfg
+
 
 class AcousticConfig(Config):
     def __init__(self, **kwargs):
@@ -57,3 +63,9 @@ class AcousticConfig(Config):
         self.verbose = kwargs.get("verbose", False)
         self.model_weights_name = "acoustic_model.torch"
         self.model_config_name = "acoustic_model.json"
+
+    @staticmethod
+    def from_json(config_json):
+        cfg = AcousticConfig()
+        cfg.hidden_dim = config_json["hidden_dim"]
+        return cfg

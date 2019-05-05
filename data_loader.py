@@ -205,7 +205,7 @@ def load_linguistic_dataset():
 
     assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
 
-    return split_dataset_head(linguistic_dataset, linguistic_labels)
+    return split_dataset_skip(linguistic_dataset, linguistic_labels)
 
 
 def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', value=0.):
