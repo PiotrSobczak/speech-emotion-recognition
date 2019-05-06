@@ -63,7 +63,7 @@ def evaluate(model, iterator, criterion):
     return epoch_loss / len(iterator), acc, weighted_acc, conf_mat
 
 
-def evaluate_ensemble(acoustic_model, linguistic_model, acoustic_model_iterator, linguistic_model_iterator, criterion):
+def evaluate_ensemble(acoustic_model, linguistic_model, acoustic_model_iterator, linguistic_model_iterator, criterion, ensemble_type, alpha=0.5):
     acoustic_model.eval()
     linguistic_model.eval()
 
@@ -75,8 +75,15 @@ def evaluate_ensemble(acoustic_model, linguistic_model, acoustic_model_iterator,
             predictions_acoustic = F.log_softmax(acoustic_model(acoustic_batch).squeeze(1), dim=1)
             predictions_linguistic = F.log_softmax(linguistic_model(linguistic_batch).squeeze(1), dim=1)
 
-            predictions = (predictions_acoustic + predictions_linguistic) / 2
-
+            if ensemble_type == "average":
+                predictions = (predictions_acoustic + predictions_linguistic) / 2
+            elif ensemble_type == "weighted_average":
+                predictions = predictions_acoustic * alpha + predictions_linguistic * (1-alpha)
+            elif ensemble_type == "higher_confidence":
+                predictions = np.zeros(predictions_acoustic.shape)
+                for i in range(predictions_acoustic.shape[0]):
+                    predictions[i] = predictions_acoustic[i] if predictions_acoustic[i].max() > predictions_linguistic[i].max() else predictions_linguistic[i]
+            predictions = torch.Tensor(predictions)
             loss = criterion(predictions.float(), labels)
             epoch_loss += loss.item()
             conf_mat += confusion_matrix(predictions, labels)

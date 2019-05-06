@@ -64,5 +64,33 @@ if __name__ == "__main__":
     val_loss, val_acc, val_weighted_acc, conf_mat = evaluate(linguistic_model, val_iterator_linguistic, criterion)
     print("Linguistic: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(val_loss, val_acc, val_weighted_acc, conf_mat))
 
-    val_loss, val_acc, val_weighted_acc, conf_mat = evaluate_ensemble(acoustic_model, linguistic_model, val_iterator_acoustic, val_iterator_linguistic, torch.nn.NLLLoss().to(device))
-    print("Ensemble: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(val_loss, val_acc, val_weighted_acc, conf_mat))
+    val_loss, val_acc, val_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        val_iterator_acoustic,
+        val_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "average"
+    )
+    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(val_loss, val_acc, val_weighted_acc, conf_mat))
+
+    val_loss, val_acc, val_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        val_iterator_acoustic,
+        val_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "weighted_average",
+        0.45
+    )
+    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(val_loss, val_acc, val_weighted_acc, conf_mat))
+
+    val_loss, val_acc, val_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        val_iterator_acoustic,
+        val_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "higher_confidence",
+    )
+    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(val_loss, val_acc, val_weighted_acc, conf_mat))
