@@ -80,6 +80,7 @@ def run_training(cfg, test_features, test_labels, train_data, train_labels, val_
             log(f'| Epoch: {epoch+1} | Val Loss: {val_loss:.3f} | Val Acc: {val_acc*100:.2f}% '
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', cfg.verbose)
 
+    model.load_state_dict(torch.load(model_weights_path))
     test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
 
     result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_weighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
