@@ -15,7 +15,7 @@ from config import LinguisticConfig, AcousticConfig
 MODEL_PATH = "saved_models"
 
 
-def run_training(cfg, train_data, train_labels, val_data, val_labels):
+def run_training(cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
     model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
     model_weights_path = "{}/{}".format(model_run_path, cfg.model_weights_name)
     model_config_path = "{}/{}".format(model_run_path, cfg.model_config_name)
@@ -44,6 +44,7 @@ def run_training(cfg, train_data, train_labels, val_data, val_labels):
     criterion = criterion.to(device)
 
     """Creating data generators"""
+    test_iterator = BatchIterator(test_features, test_labels, 100)
     train_iterator = BatchIterator(train_data, train_labels, cfg.batch_size)
     validation_iterator = BatchIterator(val_data, val_labels, 100)
 
@@ -79,8 +80,10 @@ def run_training(cfg, train_data, train_labels, val_data, val_labels):
             log(f'| Epoch: {epoch+1} | Val Loss: {val_loss:.3f} | Val Acc: {val_acc*100:.2f}% '
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', cfg.verbose)
 
-    result = f'| Epoch: {epoch+1} | Val Loss: {best_val_loss:.3f} | Val Acc: {best_val_acc*100:.2f}% | Weighted Val Acc: {best_val_weighted_acc*100:.2f}% |' \
-             f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}% \n Confusion matrix:\n {best_conf_mat}'
+    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
+
+    result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_weighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
+
     log_major(result)
     log_major("Hyperparameters:{}".format(cfg.to_json()))
     with open(result_path, "w") as file:
@@ -94,10 +97,10 @@ if __name__ == "__main__":
 
     if args.model_type == "linguistic":
         cfg = LinguisticConfig()
-        val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
+        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
     elif args.model_type == "acoustic":
         cfg = AcousticConfig()
-        val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
+        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
     else:
         raise Exception("model_type parameter has to be one of [acoustic|linguistic]")
 
@@ -110,4 +113,4 @@ if __name__ == "__main__":
         torch.set_default_tensor_type("torch.FloatTensor")
 
     """Running training"""
-    run_training(cfg, train_features, train_labels, val_features, val_labels)
+    run_training(cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)

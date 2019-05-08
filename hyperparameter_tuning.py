@@ -17,7 +17,7 @@ if __name__ == "__main__":
         args = parser.parse_args()
 
         if args.model_type == "linguistic":
-            val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
+            test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
             #params["n_layers"] = np.random.randint(1, 2)
             #params["hidden_dim"] = np.random.randint(256, 1000)
             params["dropout"] = 0.5 + np.random.rand() * 0.4
@@ -27,11 +27,11 @@ if __name__ == "__main__":
             params["batch_size"] = np.random.randint(64,256)
             params["seq_len"] = np.random.randint(20, 30)
             #params["bidirectional"] = bool(np.random.randint(0,2))
-            run_training(LinguisticConfig(**params), train_features, train_labels, val_features, val_labels)
+            run_training(LinguisticConfig(**params), test_features, test_labels, train_features, train_labels, val_features, val_labels)
 
         elif args.model_type == "acoustic":
             cfg = AcousticConfig()
-            val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
+            test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
             params["n_layers"] = np.random.randint(1, 4)
             params["hidden_dim"] = 50 #np.random.randint(10, 50)
             params["dropout"] = 0.0# 0.5 + np.random.rand() * 0.4
@@ -41,7 +41,7 @@ if __name__ == "__main__":
             params["batch_size"] = 96 #np.random.randint(26,256)
             #params["seq_len"] = np.random.randint(20, 30)
             params["bidirectional"] = bool(np.random.randint(0,2))
-            run_training(AcousticConfig(**params), train_features, train_labels, val_features, val_labels)
+            run_training(AcousticConfig(**params), test_features, test_labels, train_features, train_labels, val_features, val_labels)
 
         else:
             raise Exception("model_type parameter has to be one of [acoustic|linguistic]")
