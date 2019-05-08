@@ -34,17 +34,27 @@ References:
 [[8](https://kundoc.com/queue/pdf-evaluating-deep-learning-architectures-for-speech-emotion-recognition-.html)]
 [[9](http://www.utdallas.edu/~mirsamadi/files/mirsamadi17a.pdf)]
 
+# System Architecture
+<img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/ensemble_arch_live.png" width="600"></img>
 
-# Linguistic model performance on validation set
+# Results so far
 
-Accuracy: **61.87%**  
-Weighted Accuracy: **62.75%**  
-Confusion matrix:
+| Model | Accuracy | Unweighted Accuracy  | Loss  |
+|---|---|---|---|
+| Acoustic  |  0.602 | 0.601  | 0.983  |
+| Linguistic  | 0.642  | 0.638  | 0.913  |
+| Ensemble (highest confidence) | 0.699  | 0.704  | 0.827  |
+| Ensemble (average) | 0.711  | 0.708  | 0.948  |
+| Ensemble (weighted average) | 0.716  | 0.712  | 0.944  |
+
+### Confusion matrix of the best model
 ```
- [[318. 119.  74.  45.]
-  [ 90. 265.  30.  21.]
-  [ 66.  33. 164.  14.]
-  [ 44.  27.   9. 181.]]
+loss: 0.944, acc: 0.716. unweighted acc: 0.712, conf_mat: 
+[[291.  60.  31.   9.]
+ [ 88. 282.  17.   6.]
+ [ 46.  19. 191.   2.]
+ [ 61.  26.   4. 167.]]
 ```
+
 *classes in order: [Neutral, Happiness, Sadness, Anger]  
 *row - correct class, column - prediction
