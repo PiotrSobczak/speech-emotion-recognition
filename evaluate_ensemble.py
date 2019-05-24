@@ -62,7 +62,7 @@ if __name__ == "__main__":
     print("Acoustic: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
 
     test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(linguistic_model, test_iterator_linguistic, criterion)
-    print("Linguistic: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Linguistic(asr=False): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
 
     test_loss, test_acc, test_weighted_acc, conf_mat = evaluate_ensemble(
         acoustic_model,
@@ -82,6 +82,44 @@ if __name__ == "__main__":
         torch.nn.NLLLoss().to(device),
         "weighted_average",
         0.45
+    )
+    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+
+    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        test_iterator_acoustic,
+        test_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "higher_confidence",
+    )
+    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+
+    print("-------------------------ASR---------------------------------------")
+    test_features_linguistic, test_labels_linguistic, _, _, _, _ = load_linguistic_dataset(asr=True)
+    test_iterator_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
+
+    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(linguistic_model, test_iterator_linguistic, criterion)
+    print("Linguistic(asr=True): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+
+    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        test_iterator_acoustic,
+        test_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "average"
+    )
+    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+
+    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate_ensemble(
+        acoustic_model,
+        linguistic_model,
+        test_iterator_acoustic,
+        test_iterator_linguistic,
+        torch.nn.NLLLoss().to(device),
+        "weighted_average",
+        0.55
     )
     print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
 

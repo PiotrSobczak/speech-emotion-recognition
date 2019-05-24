@@ -5,16 +5,18 @@ from python_speech_features import mfcc
 
 from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
-from utils import timeit
+from utils import timeit, log
 from iemocap_utils.features import stFeatureExtraction
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
-
+IEMOCAP_BALANCED_ASR_PATH = "data/iemocap_balanced_asr.pickle"
 LINGUISTIC_DATASET_PATH = "data/linguistic_features.npy"
 LINGUISTIC_LABELS_PATH = "data/linguistic_labels.npy"
 ACOUSTIC_FEATURES_PATH = "data/acoustic_features.npy"
 ACOUSTIC_LABELS_PATH = "data/acoustic_labels.npy"
+LINGUISTIC_DATASET_ASR_PATH = "data/linguistic_features_asr.npy"
+LINGUISTIC_LABELS_ASR_PATH = "data/linguistic_labels_asr.npy"
 
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
@@ -180,37 +182,62 @@ def load_acoustic_dataset():
 
 
 @timeit
-def create_linguistic_dataset(sequence_len=30, embedding_size=400):
-    iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
-    transcriptions = [{"transcription": dic["transcription"], "emotion": dic["emotion"]} for dic in iemocap]
-    labels = np.zeros(len(transcriptions))
-    transcriptions_emb = np.zeros((len(transcriptions), sequence_len, embedding_size))
-    for i, obj in enumerate(transcriptions):
+def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
+    iemocap = pickle.load(open(IEMOCAP_BALANCED_ASR_PATH, "rb"))
+
+    labels = np.zeros(len(iemocap))
+    transcriptions_emb = np.zeros((len(iemocap), sequence_len, embedding_size))
+    for i, obj in enumerate(iemocap):
         class_id = CLASS_TO_ID[obj["emotion"]]
         labels[i] = class_id
-        preprocessed_transcription = Preprocessor.preprocess_one(obj["transcription"])
+        transcription = obj["asr_transcription"] if asr else obj["transcription"]
+        preprocessed_transcription = Preprocessor.preprocess_one(transcription)
         transcriptions_emb[i] = Word2VecWrapper.get_sentence_embedding(preprocessed_transcription, sequence_len)
 
-    np.save(LINGUISTIC_DATASET_PATH, transcriptions_emb)
-    np.save(LINGUISTIC_LABELS_PATH, labels)
+    dataset_path = LINGUISTIC_DATASET_ASR_PATH if asr else LINGUISTIC_DATASET_PATH
+    labels_path = LINGUISTIC_LABELS_ASR_PATH if asr else LINGUISTIC_LABELS_PATH
+
+    np.save(dataset_path, transcriptions_emb)
+    np.save(labels_path, labels)
 
 
 @timeit
-def load_linguistic_dataset():
+def load_linguistic_dataset(asr=False):
+    dataset_path = LINGUISTIC_DATASET_ASR_PATH if asr else LINGUISTIC_DATASET_PATH
+    labels_path = LINGUISTIC_LABELS_ASR_PATH if asr else LINGUISTIC_LABELS_PATH
+
     """Extracting & Saving dataset"""
-    if not isfile(LINGUISTIC_DATASET_PATH) or not isfile(LINGUISTIC_LABELS_PATH):
-        print("Linguistic dataset not found. Creating dataset...")
-        create_linguistic_dataset()
+    if not isfile(dataset_path) or not isfile(labels_path):
+        print("Linguistic dataset not found. Creating dataset... ASR={}".format(asr))
+        create_linguistic_dataset(asr)
         print("Linguistic dataset created. Loading dataset...")
 
     """Loading linguistic dataset"""
-    linguistic_dataset = np.load(LINGUISTIC_DATASET_PATH)
-    linguistic_labels = np.load(LINGUISTIC_LABELS_PATH)
-    print("Linguistic dataset loaded.")
+    linguistic_dataset = np.load(dataset_path)
+    linguistic_labels = np.load(labels_path)
+    print("Linguistic dataset loaded ASR={}".format(asr))
 
     assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
 
     return split_dataset_skip(linguistic_dataset, linguistic_labels)
+
+@timeit
+def generate_transcriptions(iemocap_full_path):
+    from os.path import join
+    from deepspeech_generator import speech_to_text
+    print("Loading iemocap...")
+    iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
+    print("Done. Generating transcriptions...")
+    for i, sample in enumerate(iemocap):
+        session_id = sample['id'].split('Ses0')[1][0]
+        sample_dir = "_".join(sample['id'].split("_")[:-1])
+        sample_name = "{}.wav".format(sample['id'])
+        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
+        transcription = speech_to_text("models/output_graph.pbmm", "models/alphabet.txt", "models/lm.binary", "models/trie", abs_path)
+        iemocap[i]["asr_transcription"] = transcription
+        if not i % 10 and i != 0:
+            log("{}/{}".format(i, len(iemocap)), True)
+    pickle.dump(iemocap, open(IEMOCAP_BALANCED_ASR_PATH, "wb"))
 
 
 def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', value=0.):
