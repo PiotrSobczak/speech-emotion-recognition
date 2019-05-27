@@ -29,7 +29,7 @@ class LinguisticConfig(Config):
         self.n_epochs = kwargs.get("n_epochs", 1000)
 
         """Other parameters"""
-        self.verbose = kwargs.get("verbose", True)
+        self.verbose = kwargs.get("verbose", False)
         self.model_weights_name = "linguistic_model.torch"
         self.model_config_name = "linguistic_model.json"
 
