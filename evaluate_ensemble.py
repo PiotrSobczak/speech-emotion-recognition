@@ -7,7 +7,7 @@ import json
 from models import AttentionModel
 from train_utils import evaluate, evaluate_ensemble
 from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_dataset
+from data_loader import load_linguistic_dataset, load_acoustic_features_dataset
 from config import LinguisticConfig, AcousticConfig
 
 MODEL_PATH = "saved_models"
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     assert isfile(args.linguistic_model), "linguistic_model weights file does not exist"
     assert isfile(args.linguistic_model.replace(".torch", ".json")), "linguistic_model config file does not exist"
 
-    test_features_acoustic, test_labels_acoustic, _, _, _, _ = load_acoustic_dataset()
+    test_features_acoustic, test_labels_acoustic, _, _, _, _ = load_acoustic_features_dataset()
     test_iterator_acoustic = BatchIterator(test_features_acoustic, test_labels_acoustic, 100)
     test_features_linguistic, test_labels_linguistic, _, _, _, _ = load_linguistic_dataset()
     test_iterator_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)

@@ -1,7 +1,13 @@
 import pickle
+from os.path import isfile, join
+import wave
+import pylab
+import skimage.measure
+import matplotlib.pyplot as plt
 import numpy as np
-from os.path import isfile
+
 from python_speech_features import mfcc
+from deepspeech_generator import speech_to_text
 
 from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
@@ -17,7 +23,8 @@ ACOUSTIC_FEATURES_PATH = "data/acoustic_features.npy"
 ACOUSTIC_LABELS_PATH = "data/acoustic_labels.npy"
 LINGUISTIC_DATASET_ASR_PATH = "data/linguistic_features_asr.npy"
 LINGUISTIC_LABELS_ASR_PATH = "data/linguistic_labels_asr.npy"
-
+SPECTROGRAMS_FEATURES_PATH = "data/spectrograms_features.npy"
+SPECTROGRAMS_LABELS_PATH = "data/spectrograms_labels.npy"
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
@@ -115,6 +122,86 @@ def split_dataset_head(dataset_features, dataset_labels):
 
     return val_features, val_labels, train_features, train_labels
 
+
+@timeit
+def create_spectrogram_dataset(iemocap_full_path):
+    MAX_SPETROGRAM_LENGTH = 999  # 8 sec
+    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 100
+    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 65
+
+    def get_wav_info(wav_file):
+        wav = wave.open(wav_file, 'r')
+        frames = wav.readframes(-1)
+        sound_info = pylab.fromstring(frames, 'Int16')
+        frame_rate = wav.getframerate()
+        wav.close()
+        return sound_info, frame_rate
+
+    def calculate_spectrogram(wav_file, view=False):
+        """Based on https://dzone.com/articles/generating-audio-spectrograms"""
+
+        """Loading wav file"""
+        sound_info, frame_rate = get_wav_info(wav_file)
+
+        """Creating spectrogram"""
+        spec, freqs, times, axes = pylab.specgram(sound_info, Fs=frame_rate)
+
+        """Checking dimensions of spectrogram"""
+        assert spec.shape[0] == freqs.shape[0] and spec.shape[1] == times.shape[0], "Original dimensions of spectrogram are inconsistent"
+
+        """Extracting a const length spectrogram"""
+        times = times[:MAX_SPETROGRAM_LENGTH]
+        spec = spec[:, :MAX_SPETROGRAM_LENGTH]
+        assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
+
+        spec_log = np.log(spec)
+        spec_pooled = skimage.measure.block_reduce(spec_log, (2, 10), np.mean)
+        spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
+        spectrogram[:, :spec_pooled.shape[1]] = spec_pooled
+
+        if view:
+            plt.imshow(spectrogram, cmap='hot', interpolation='nearest')
+            plt.show()
+
+        return spectrogram
+
+    with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
+        iemocap = pickle.load(handle)
+
+    labels = []
+    spectrograms = []
+
+    for i, sample in enumerate(iemocap):
+        labels.append(CLASS_TO_ID[sample['emotion']])
+        session_id = sample['id'].split('Ses0')[1][0]
+        sample_dir = "_".join(sample['id'].split("_")[:-1])
+        sample_name = "{}.wav".format(sample['id'])
+        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
+        spectrogram = calculate_spectrogram(abs_path)
+        spectrograms.append(spectrogram)
+        if (i % 100 == 0):
+            print(i)
+
+    np.save(SPECTROGRAMS_LABELS_PATH, np.array(labels))
+    np.save(SPECTROGRAMS_FEATURES_PATH, np.array(spectrograms))
+
+@timeit
+def load_spectrogram_dataset(iemocap_full_path):
+    """Extracting & Saving dataset"""
+    if not isfile(SPECTROGRAMS_FEATURES_PATH) or not isfile(SPECTROGRAMS_LABELS_PATH):
+        print("Spectrogram dataset not found. Creating dataset...")
+        create_spectrogram_dataset(iemocap_full_path)
+        print("Spectrogram dataset created. Loading dataset...")
+
+    """Loading Spectrogram dataset"""
+    spectrogram_dataset = np.load(SPECTROGRAMS_FEATURES_PATH)
+    spectrogram_labels = np.load(SPECTROGRAMS_LABELS_PATH)
+    print("Spectrogram dataset loaded.")
+
+    assert spectrogram_dataset.shape[0] == spectrogram_labels.shape[0]
+
+    return split_dataset_skip(spectrogram_dataset, spectrogram_labels)
+
 @timeit
 def create_acoustic_dataset(framerate=16000):
     def calculate_acoustic_features(frames, freq, options):
@@ -164,7 +251,7 @@ def create_acoustic_dataset(framerate=16000):
     np.save(ACOUSTIC_FEATURES_PATH, np.array(acoustic_features))
 
 @timeit
-def load_acoustic_dataset():
+def load_acoustic_features_dataset():
     """Extracting & Saving dataset"""
     if not isfile(ACOUSTIC_FEATURES_PATH) or not isfile(ACOUSTIC_LABELS_PATH):
         print("Acoustic dataset not found. Creating dataset...")
@@ -188,6 +275,7 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
     labels = np.zeros(len(iemocap))
     transcriptions_emb = np.zeros((len(iemocap), sequence_len, embedding_size))
     for i, obj in enumerate(iemocap):
+        print("TRUE: {}\nASR:  {}".format(obj["transcription"], obj["asr_transcription"]))
         class_id = CLASS_TO_ID[obj["emotion"]]
         labels[i] = class_id
         transcription = obj["asr_transcription"] if asr else obj["transcription"]
@@ -223,8 +311,6 @@ def load_linguistic_dataset(asr=False):
 
 @timeit
 def generate_transcriptions(iemocap_full_path):
-    from os.path import join
-    from deepspeech_generator import speech_to_text
     print("Loading iemocap...")
     iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
     print("Done. Generating transcriptions...")
@@ -269,4 +355,6 @@ def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', 
 
 
 if __name__ == "__main__":
-    val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
+    ret = load_spectrogram_dataset("/media/piosobc/Storage Drive/IEMOCAP_full_release/IEMOCAP_full_release")
+    plt.imshow(ret[0][0], cmap='hot', interpolation='nearest')
+    plt.show()

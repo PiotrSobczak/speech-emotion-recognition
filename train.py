@@ -7,7 +7,7 @@ import argparse
 from models import AttentionModel as RNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_dataset, VAL_SIZE
+from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, VAL_SIZE
 from utils import timeit, log, log_major, log_success
 from config import LinguisticConfig, AcousticConfig
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
     elif args.model_type == "acoustic":
         cfg = AcousticConfig()
-        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
+        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_features_dataset()
     else:
         raise Exception("model_type parameter has to be one of [acoustic|linguistic]")
 

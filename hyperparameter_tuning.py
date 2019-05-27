@@ -3,7 +3,7 @@ import argparse
 
 from train import run_training
 from config import LinguisticConfig, AcousticConfig
-from data_loader import load_acoustic_dataset, load_linguistic_dataset
+from data_loader import load_acoustic_features_dataset, load_linguistic_dataset
 
 NUM_ITERATIONS = 500
 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
         elif args.model_type == "acoustic":
             cfg = AcousticConfig()
-            test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_dataset()
+            test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_features_dataset()
             params["n_layers"] = np.random.randint(1, 4)
             params["hidden_dim"] = 50 #np.random.randint(10, 50)
             params["dropout"] = 0.0# 0.5 + np.random.rand() * 0.4
