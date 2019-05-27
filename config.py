@@ -40,7 +40,7 @@ class LinguisticConfig(Config):
         return cfg
 
 
-class AcousticConfig(Config):
+class AcousticLLDConfig(Config):
     def __init__(self, **kwargs):
         """Network hyperparameters"""
         self.n_layers = kwargs.get("n_layers", 1)
@@ -61,11 +61,40 @@ class AcousticConfig(Config):
 
         """Other parameters"""
         self.verbose = kwargs.get("verbose", False)
-        self.model_weights_name = "acoustic_model.torch"
-        self.model_config_name = "acoustic_model.json"
+        self.model_weights_name = "acoustic_lld_model.torch"
+        self.model_config_name = "acoustic_ld_model.json"
 
     @staticmethod
     def from_json(config_json):
-        cfg = AcousticConfig()
+        cfg = AcousticLLDConfig()
         cfg.hidden_dim = config_json["hidden_dim"]
+        return cfg
+
+
+class AcousticSpectrogramConfig(Config):
+    def __init__(self, **kwargs):
+        """Network hyperparameters"""
+        self.fc_size = kwargs.get("hidden_dim", 100)
+        self.conv_size = kwargs.get("conv_size", 3)
+        self.pool_size = kwargs.get("pool_size", 3)
+        self.num_filters1 = kwargs.get("num_filters1", 8)
+        self.num_filters2 = kwargs.get("num_filters2", 16)
+        self.num_classes = kwargs.get("num_classes", NUM_CLASSES)
+        self.dropout = kwargs.get("dropout", 0.5)
+
+        """Training hyperparameters"""
+        self.reg_ratio = kwargs.get("reg_ratio", 0.0)
+        self.lr = kwargs.get("lr", 0.001)
+        self.batch_size = kwargs.get("batch_size", 128)
+        self.patience = kwargs.get("patience", 30)
+        self.n_epochs = kwargs.get("n_epochs", 1000)
+
+        """Other parameters"""
+        self.verbose = kwargs.get("verbose", False)
+        self.model_weights_name = "acoustic_spec_model.torch"
+        self.model_config_name = "acoustic__spec_model.json"
+
+    @staticmethod
+    def from_json(config_json):
+        cfg = AcousticSpectrogramConfig()
         return cfg

@@ -2,9 +2,9 @@ import numpy as np
 import argparse
 
 from train import run_training
-from config import LinguisticConfig, AcousticConfig
-from data_loader import load_acoustic_features_dataset, load_linguistic_dataset
-
+from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
+from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
+from models import AttentionModel as RNN, CNN
 NUM_ITERATIONS = 500
 
 LINGUISTIC_TUNING = True
@@ -27,10 +27,10 @@ if __name__ == "__main__":
             params["batch_size"] = np.random.randint(64,256)
             params["seq_len"] = np.random.randint(20, 30)
             #params["bidirectional"] = bool(np.random.randint(0,2))
-            run_training(LinguisticConfig(**params), test_features, test_labels, train_features, train_labels, val_features, val_labels)
+            cfg = LinguisticConfig(**params)
+            model = RNN(cfg)
 
-        elif args.model_type == "acoustic":
-            cfg = AcousticConfig()
+        elif args.model_type == "acoustic-lld":
             test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_features_dataset()
             params["n_layers"] = np.random.randint(1, 4)
             params["hidden_dim"] = 50 #np.random.randint(10, 50)
@@ -41,7 +41,17 @@ if __name__ == "__main__":
             params["batch_size"] = 96 #np.random.randint(26,256)
             #params["seq_len"] = np.random.randint(20, 30)
             params["bidirectional"] = bool(np.random.randint(0,2))
-            run_training(AcousticConfig(**params), test_features, test_labels, train_features, train_labels, val_features, val_labels)
+            cfg = AcousticLLDConfig(**params)
+            model = RNN(cfg)
+
+        elif args.model_type == "acoustic-spectrogram":
+            test_features, test_labels, val_features, val_labels, train_features, train_labels = load_spectrogram_dataset()
+            params["fc_size"] = np.random.randint(10, 200)
+            params["dropout"] = 0.2 + np.random.rand() * 0.7
+            cfg = AcousticSpectrogramConfig(**params)
+            model = CNN(cfg)
 
         else:
-            raise Exception("model_type parameter has to be one of [acoustic|linguistic]")
+            raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
+
+        run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)

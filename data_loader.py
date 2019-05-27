@@ -126,8 +126,8 @@ def split_dataset_head(dataset_features, dataset_labels):
 @timeit
 def create_spectrogram_dataset(iemocap_full_path):
     MAX_SPETROGRAM_LENGTH = 999  # 8 sec
-    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 100
-    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 65
+    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 64
+    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 64
 
     def get_wav_info(wav_file):
         wav = wave.open(wav_file, 'r')
@@ -155,9 +155,10 @@ def create_spectrogram_dataset(iemocap_full_path):
         assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
 
         spec_log = np.log(spec)
-        spec_pooled = skimage.measure.block_reduce(spec_log, (2, 10), np.mean)
+        spec_pooled = skimage.measure.block_reduce(spec_log, (2, 15), np.mean)
+        spec_cropped = spec_pooled[:MAX_SPETROGRAM_FREQ_LENGTH_POOLED, :MAX_SPETROGRAM_TIME_LENGTH_POOLED]
         spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
-        spectrogram[:, :spec_pooled.shape[1]] = spec_pooled
+        spectrogram[:, :spec_cropped.shape[1]] = spec_cropped
 
         if view:
             plt.imshow(spectrogram, cmap='hot', interpolation='nearest')
@@ -186,7 +187,7 @@ def create_spectrogram_dataset(iemocap_full_path):
     np.save(SPECTROGRAMS_FEATURES_PATH, np.array(spectrograms))
 
 @timeit
-def load_spectrogram_dataset(iemocap_full_path):
+def load_spectrogram_dataset(iemocap_full_path=None):
     """Extracting & Saving dataset"""
     if not isfile(SPECTROGRAMS_FEATURES_PATH) or not isfile(SPECTROGRAMS_LABELS_PATH):
         print("Spectrogram dataset not found. Creating dataset...")

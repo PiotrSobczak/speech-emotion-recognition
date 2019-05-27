@@ -50,7 +50,7 @@ def evaluate(model, iterator, criterion):
 
     with torch.no_grad():
         for batch, labels in iterator():
-            predictions = model(batch).squeeze(1)
+            predictions = model(batch)
 
             loss = criterion(predictions.float(), labels)
             epoch_loss += loss.item()

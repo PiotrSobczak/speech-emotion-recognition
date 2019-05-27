@@ -169,7 +169,7 @@ class AttentionModel(torch.nn.Module):
         # else:
         #     h_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
         #     c_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
-
+        input = input.swapaxes(0, 1)
         input = torch.Tensor(input)
         input = self.dropout(input)
 
@@ -181,4 +181,27 @@ class AttentionModel(torch.nn.Module):
 
         logits = self.label(attn_output)
 
-        return logits
+        return logits.squeeze(1)
+
+
+class CNN(nn.Module):
+    def __init__(self, cfg):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(1, cfg.num_filters1, cfg.conv_size)
+        self.pool = nn.MaxPool2d(cfg.pool_size, cfg.pool_size)
+        self.conv2 = nn.Conv2d(cfg.num_filters1, cfg.num_filters2, cfg.conv_size)
+        self.flat_size = cfg.num_filters2 * 6 * 6
+        self.fc1 = nn.Linear(self.flat_size, cfg.fc_size)
+        self.fc2 = nn.Linear(cfg.fc_size, cfg.num_classes)
+        self.dropout = torch.nn.Dropout(cfg.dropout)
+
+    def forward(self, x):
+        x = torch.Tensor(x)
+        x = x.unsqueeze(1)
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, self.flat_size)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = F.relu(self.fc2(x))
+        return x
