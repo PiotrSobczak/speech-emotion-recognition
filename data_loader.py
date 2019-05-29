@@ -5,9 +5,7 @@ import pylab
 import skimage.measure
 import matplotlib.pyplot as plt
 import numpy as np
-
 from python_speech_features import mfcc
-from deepspeech_generator import speech_to_text
 
 from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
@@ -312,6 +310,7 @@ def load_linguistic_dataset(asr=False):
 
 @timeit
 def generate_transcriptions(iemocap_full_path):
+    from deepspeech_generator import speech_to_text
     print("Loading iemocap...")
     iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
     print("Done. Generating transcriptions...")
