@@ -76,9 +76,8 @@ class AcousticSpectrogramConfig(Config):
         """Network hyperparameters"""
         self.fc_size = kwargs.get("hidden_dim", 100)
         self.conv_size = kwargs.get("conv_size", 3)
-        self.pool_size = kwargs.get("pool_size", 3)
-        self.num_filters1 = kwargs.get("num_filters1", 8)
-        self.num_filters2 = kwargs.get("num_filters2", 16)
+        self.pool_size = kwargs.get("pool_size", 2)
+        self.num_filters = kwargs.get("num_filters", [8, 16, 16])
         self.num_classes = kwargs.get("num_classes", NUM_CLASSES)
         self.dropout = kwargs.get("dropout", 0.5)
 

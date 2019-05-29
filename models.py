@@ -187,10 +187,12 @@ class AttentionModel(torch.nn.Module):
 class CNN(nn.Module):
     def __init__(self, cfg):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, cfg.num_filters1, cfg.conv_size)
+        self.conv1 = nn.Conv2d(1, cfg.num_filters[0], cfg.conv_size)
+        self.conv2 = nn.Conv2d(cfg.num_filters[0], cfg.num_filters[1], cfg.conv_size)
+        self.conv3 = nn.Conv2d(cfg.num_filters[1], cfg.num_filters[2], cfg.conv_size)
         self.pool = nn.MaxPool2d(cfg.pool_size, cfg.pool_size)
-        self.conv2 = nn.Conv2d(cfg.num_filters1, cfg.num_filters2, cfg.conv_size)
-        self.flat_size = cfg.num_filters2 * 6 * 6
+
+        self.flat_size = cfg.num_filters[2] * 6 * 6
         self.fc1 = nn.Linear(self.flat_size, cfg.fc_size)
         self.fc2 = nn.Linear(cfg.fc_size, cfg.num_classes)
         self.dropout = torch.nn.Dropout(cfg.dropout)
@@ -200,6 +202,7 @@ class CNN(nn.Module):
         x = x.unsqueeze(1)
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
         x = x.view(-1, self.flat_size)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
