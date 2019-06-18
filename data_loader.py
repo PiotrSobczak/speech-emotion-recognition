@@ -26,6 +26,7 @@ SPECTROGRAMS_LABELS_PATH = "data/spectrograms_labels.npy"
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
+LAST_SESSION_SAMPLE_ID = 4290
 
 
 def create_balanced_iemocap():
@@ -121,6 +122,30 @@ def split_dataset_head(dataset_features, dataset_labels):
     return val_features, val_labels, train_features, train_labels
 
 
+def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.2):
+    """Splittng dataset into train/val sets by taking every nth sample to val set"""
+
+    test_indexes = list(range(LAST_SESSION_SAMPLE_ID, dataset_features.shape[0]))
+
+    skip_ratio = int(1/split_ratio)
+    all_indexes = list(range(dataset_features.shape[0]))
+    train_indexes = list(set(all_indexes) - set(test_indexes))
+    val_indexes = train_indexes[::skip_ratio]
+    train_indexes = list(set(train_indexes) - set(val_indexes))
+
+    test_features = dataset_features[test_indexes]
+    test_labels = dataset_labels[test_indexes]
+    val_features = dataset_features[val_indexes]
+    val_labels = dataset_labels[val_indexes]
+    train_features = dataset_features[train_indexes]
+    train_labels = dataset_labels[train_indexes]
+
+    assert test_features.shape[0] == test_labels.shape[0]
+    assert val_features.shape[0] == val_labels.shape[0]
+    assert train_features.shape[0] == train_labels.shape[0]
+    assert test_features.shape[0] + val_features.shape[0] + train_features.shape[0] == dataset_features.shape[0]
+    return test_features, test_labels, val_features, val_labels, train_features, train_labels
+
 @timeit
 def create_spectrogram_dataset(iemocap_full_path):
     MAX_SPETROGRAM_LENGTH = 999  # 8 sec
@@ -199,7 +224,7 @@ def load_spectrogram_dataset(iemocap_full_path=None):
 
     assert spectrogram_dataset.shape[0] == spectrogram_labels.shape[0]
 
-    return split_dataset_skip(spectrogram_dataset, spectrogram_labels)
+    return split_dataset_session_wise(spectrogram_dataset, spectrogram_labels)
 
 @timeit
 def create_acoustic_dataset(framerate=16000):
@@ -264,7 +289,7 @@ def load_acoustic_features_dataset():
 
     assert mfcc_features.shape[0] == mfcc_labels.shape[0]
 
-    return split_dataset_skip(mfcc_features, mfcc_labels)
+    return split_dataset_session_wise(mfcc_features, mfcc_labels)
 
 
 @timeit
@@ -274,7 +299,7 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
     labels = np.zeros(len(iemocap))
     transcriptions_emb = np.zeros((len(iemocap), sequence_len, embedding_size))
     for i, obj in enumerate(iemocap):
-        print("TRUE: {}\nASR:  {}".format(obj["transcription"], obj["asr_transcription"]))
+        # print("TRUE: {}\nASR:  {}".format(obj["transcription"], obj["asr_transcription"]))
         class_id = CLASS_TO_ID[obj["emotion"]]
         labels[i] = class_id
         transcription = obj["asr_transcription"] if asr else obj["transcription"]
@@ -306,7 +331,7 @@ def load_linguistic_dataset(asr=False):
 
     assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
 
-    return split_dataset_skip(linguistic_dataset, linguistic_labels)
+    return split_dataset_session_wise(linguistic_dataset, linguistic_labels)
 
 @timeit
 def generate_transcriptions(iemocap_full_path):
