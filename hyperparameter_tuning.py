@@ -54,4 +54,8 @@ if __name__ == "__main__":
         else:
             raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
 
+        print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
+            test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
+        )
+
         run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)

@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+from math import ceil
 
 class BatchIterator:
     def __init__(self, dataset, labels, batch_size=50, embedding_size=400):
@@ -14,11 +14,11 @@ class BatchIterator:
         return int(self._size/self._batch_size)
 
     def __call__(self):
-        num_batches = int(self._size/self._batch_size)
+        num_batches = ceil(self._size/self._batch_size)
         for i in range(num_batches):
             input_batch = self._dataset[i*self._batch_size:(i+1)*self._batch_size]
             labels_batch = self._labels[i*self._batch_size:(i+1)*self._batch_size]
-            yield input_batch, torch.LongTensor(labels_batch)
+            yield input_batch, torch.cuda.LongTensor(labels_batch)
 
     def shuffle(self):
         new_order = np.random.permutation(self._size)

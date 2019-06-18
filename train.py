@@ -83,7 +83,7 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
 
     result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_weighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
-
+    log_major("Train acc: {}".format(train_acc))
     log_major(result)
     log_major("Hyperparameters:{}".format(cfg.to_json()))
     with open(result_path, "w") as file:
@@ -109,6 +109,10 @@ if __name__ == "__main__":
         model = CNN(cfg)
     else:
         raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
+
+    print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
+        test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
+    )
 
     """Running training"""
     run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)
