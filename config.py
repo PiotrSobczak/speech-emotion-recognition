@@ -91,7 +91,7 @@ class AcousticSpectrogramConfig(Config):
         """Other parameters"""
         self.verbose = kwargs.get("verbose", False)
         self.model_weights_name = "acoustic_spec_model.torch"
-        self.model_config_name = "acoustic__spec_model.json"
+        self.model_config_name = "acoustic_spec_model.json"
 
     @staticmethod
     def from_json(config_json):
