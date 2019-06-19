@@ -33,6 +33,12 @@ if __name__ == "__main__":
 
     """Choosing hardware"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == "cuda":
+        print("Using GPU. Setting default tensor type to torch.cuda.FloatTensor")
+        torch.set_default_tensor_type("torch.cuda.FloatTensor")
+    else:
+        print("Using CPU. Setting default tensor type to torch.FloatTensor")
+        torch.set_default_tensor_type("torch.FloatTensor")
 
     """Converting model to specified hardware and format"""
     acoustic_cfg_json = json.load(open(args.acoustic_model.replace(".torch", ".json"), "r"))
