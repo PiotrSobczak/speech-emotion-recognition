@@ -108,7 +108,7 @@ if __name__ == "__main__":
     plt.plot(alphas.keys(), alphas.values())
     plt.xlabel("Alpha value")
     plt.ylabel("Weighted Acc on validation set")
-    fig.savefig('temp.png', dpi=fig.dpi)
+    fig.savefig('alpha.png', dpi=fig.dpi)
 
     print("Found optimal alpha={}".format(max_val_alpha))
 
