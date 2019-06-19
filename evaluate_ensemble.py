@@ -3,6 +3,7 @@ import argparse
 import torch
 from os.path import isfile
 import json
+from matplotlib import pyplot as plt
 
 from models import AttentionModel, CNN
 from train_utils import evaluate, evaluate_ensemble
@@ -24,10 +25,12 @@ if __name__ == "__main__":
     assert isfile(args.linguistic_model), "linguistic_model weights file does not exist"
     assert isfile(args.linguistic_model.replace(".torch", ".json")), "linguistic_model config file does not exist"
 
-    test_features_acoustic, test_labels_acoustic, _, _, _, _ = load_spectrogram_dataset()
+    test_features_acoustic, test_labels_acoustic, val_features_acoustic, val_labels_acoustic, _, _ = load_spectrogram_dataset()
     test_iterator_acoustic = BatchIterator(test_features_acoustic, test_labels_acoustic, 100)
-    test_features_linguistic, test_labels_linguistic, _, _, _, _ = load_linguistic_dataset()
+    test_features_linguistic, test_labels_linguistic, val_features_linguistic, val_labels_linguistic, _, _ = load_linguistic_dataset()
     test_iterator_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
+    val_iterator_acoustic = BatchIterator(val_features_acoustic, val_labels_acoustic, 100)
+    val_iterator_linguistic = BatchIterator(val_features_linguistic, val_labels_linguistic, 100)
 
     assert np.array_equal(test_labels_acoustic, test_labels_linguistic), "Labels for acoustic and linguistic datasets are not the same!"
 
@@ -82,6 +85,33 @@ if __name__ == "__main__":
     )
     print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
 
+    print("Searching for the optimal alpha on validation set...")
+
+    alphas = {}
+    for alpha in np.linspace(0.01, 0.99, 99):
+        _, _, val_weighted_acc, _ = evaluate_ensemble(
+            acoustic_model,
+            linguistic_model,
+            val_iterator_acoustic,
+            val_iterator_linguistic,
+            torch.nn.NLLLoss().to(device),
+            "weighted_average",
+            alpha
+        )
+        alphas[alpha] = val_weighted_acc
+    max_val = max(alphas.values())
+    max_val_id = list(alphas.values()).index(max_val)
+    max_val_alpha = list(alphas.keys())[max_val_id]
+    assert alphas[max_val_alpha] == max_val
+
+    fig = plt.figure()
+    plt.plot(alphas.keys(), alphas.values())
+    plt.xlabel("Alpha value")
+    plt.ylabel("Weighted Acc on validation set")
+    fig.savefig('temp.png', dpi=fig.dpi)
+
+    print("Found optimal alpha={}".format(max_val_alpha))
+
     test_loss, test_acc, test_weighted_acc, conf_mat = evaluate_ensemble(
         acoustic_model,
         linguistic_model,
@@ -89,7 +119,7 @@ if __name__ == "__main__":
         test_iterator_linguistic,
         torch.nn.NLLLoss().to(device),
         "weighted_average",
-        0.45
+        max_val_alpha
     )
     print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
 
