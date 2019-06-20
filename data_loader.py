@@ -122,7 +122,7 @@ def split_dataset_head(dataset_features, dataset_labels):
     return val_features, val_labels, train_features, train_labels
 
 
-def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.2):
+def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1):
     """Splittng dataset into train/val sets by taking every nth sample to val set"""
 
     test_indexes = list(range(LAST_SESSION_SAMPLE_ID, dataset_features.shape[0]))
@@ -380,6 +380,10 @@ def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', 
 
 
 if __name__ == "__main__":
-    ret = load_spectrogram_dataset("/media/piosobc/Storage Drive/IEMOCAP_full_release/IEMOCAP_full_release")
-    plt.imshow(ret[0][0], cmap='hot', interpolation='nearest')
-    plt.show()
+    test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
+    print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
+        test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
+    )
+    # ret = load_spectrogram_dataset("/media/piosobc/Storage Drive/IEMOCAP_full_release/IEMOCAP_full_release")
+    # plt.imshow(ret[0][0], cmap='hot', interpolation='nearest')
+    # plt.show()
