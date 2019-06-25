@@ -27,7 +27,6 @@ VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
 LAST_SESSION_SAMPLE_ID = 4290
-SECOND_SESSION_SAMPLE_ID = 1085
 
 
 def create_balanced_iemocap():
@@ -123,13 +122,10 @@ def split_dataset_head(dataset_features, dataset_labels):
     return val_features, val_labels, train_features, train_labels
 
 
-def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1, test_on_last_session=False):
+def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1):
     """Splittng dataset into train/val sets by taking every nth sample to val set"""
 
-    if test_on_last_session:
-        test_indexes = list(range(LAST_SESSION_SAMPLE_ID, dataset_features.shape[0]))
-    else:
-        test_indexes = list(range(0, SECOND_SESSION_SAMPLE_ID))
+    test_indexes = list(range(LAST_SESSION_SAMPLE_ID, dataset_features.shape[0]))
 
     skip_ratio = int(1/split_ratio)
     all_indexes = list(range(dataset_features.shape[0]))
@@ -309,6 +305,7 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
         transcription = obj["asr_transcription"] if asr else obj["transcription"]
         preprocessed_transcription = Preprocessor.preprocess_one(transcription)
         transcriptions_emb[i] = Word2VecWrapper.get_sentence_embedding(preprocessed_transcription, sequence_len)
+
     dataset_path = LINGUISTIC_DATASET_ASR_PATH if asr else LINGUISTIC_DATASET_PATH
     labels_path = LINGUISTIC_LABELS_ASR_PATH if asr else LINGUISTIC_LABELS_PATH
 
