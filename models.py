@@ -148,6 +148,23 @@ class AttentionModel(torch.nn.Module):
 
         return new_hidden_state
 
+    def extract(self, input):
+        input = input.swapaxes(0, 1)
+        input = torch.Tensor(input)
+        input = self.dropout(input)
+
+        output, (final_hidden_state, final_cell_state) = self.lstm(
+            input)  # , ( h_0, c_0))  # final_hidden_state.size() = (1, batch_size, hidden_size)
+        output = output.permute(1, 0, 2)  # output.size() = (batch_size, num_seq, hidden_size)
+
+        attn_output = self.attention_net(output, final_hidden_state)
+        return attn_output
+
+    def classify(self, attn_output):
+        attn_output = self.dropout2(attn_output)
+        logits = self.label(attn_output)
+        return logits.squeeze(1)
+
     def forward(self, input, batch_size=None):
 
         """
@@ -169,19 +186,10 @@ class AttentionModel(torch.nn.Module):
         # else:
         #     h_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
         #     c_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
-        input = input.swapaxes(0, 1)
-        input = torch.Tensor(input)
-        input = self.dropout(input)
 
-        output, (final_hidden_state, final_cell_state) = self.lstm(input)#, ( h_0, c_0))  # final_hidden_state.size() = (1, batch_size, hidden_size)
-        output = output.permute(1, 0, 2)  # output.size() = (batch_size, num_seq, hidden_size)
-
-        attn_output = self.attention_net(output, final_hidden_state)
-        attn_output = self.dropout2(attn_output)
-
-        logits = self.label(attn_output)
-
-        return logits.squeeze(1)
+        attn_output = self.extract(input)
+        logits = self.classify(attn_output)
+        return logits
 
 
 class CNN(nn.Module):
@@ -197,7 +205,7 @@ class CNN(nn.Module):
         self.fc2 = nn.Linear(self.flat_size, cfg.num_classes)
         self.dropout = torch.nn.Dropout(cfg.dropout)
 
-    def forward(self, x):
+    def extract(self, x):
         x = torch.Tensor(x)
         x = x.unsqueeze(1)
         x = self.pool(F.relu(self.conv1(x)))
@@ -205,10 +213,34 @@ class CNN(nn.Module):
         x = self.pool(F.relu(self.conv3(x)))
         x = self.pool(F.relu(self.conv4(x)))
         x = x.view(-1, self.flat_size)
+        return x
+
+    def classify(self, x):
         x = self.dropout(x)
         x = self.fc2(x)
         return x
-    
+
+    def forward(self, x):
+        x = self.extract(x)
+        x = self.classify(x)
+        return x
+
+
+class EnsembleModel(nn.Module):
+    def __init__(self, acoustic_model, linguistic_model):
+        super(EnsembleModel, self).__init__()
+        self.acoustic_model = acoustic_model
+        self.linguistic_model =linguistic_model
+        self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
+        self.fc = nn.Linear(self.feature_size, 4)
+        self.dropout = torch.nn.Dropout(0.5)
+
+    def forward(self, acoustic_features, linguistic_features):
+        acoustic_output_features = self.acoustic_model.extract(acoustic_features)
+        linguistic_output_features = self.linguistic_model.extract(linguistic_features)
+        all_features = torch.cat((acoustic_output_features, linguistic_output_features), 1)
+        return self.fc(self.dropout(all_features))
+
 
 class Block(nn.Module):
     '''Depthwise conv + Pointwise conv'''
