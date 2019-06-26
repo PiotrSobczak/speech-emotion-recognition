@@ -2,6 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from data_loader import load_linguistic_dataset, CLASS_TO_ID
 
+scores = [72.1, 71.8, 71.1, 68.4, 64.8, 64.5, 64.1, 63.5, 56.1]
+legend = ["A", "B", "C", "D", "E", "F", "G", "H"]
+
+
+barlist = plt.bar(np.arange(len(scores)), scores, align='center', alpha=0.5)
+barlist[2].set_color('r')
+plt.xticks([0,1,3,4,5,6,7,8], legend)
+plt.ylabel('Accuracy[%]')
+plt.title("Related works comparison")
+plt.ylim((50, 73))
+plt.show()
+
 test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
 print(
     "Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
