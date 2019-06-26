@@ -227,13 +227,17 @@ class CNN(nn.Module):
 
 
 class EnsembleModel(nn.Module):
-    def __init__(self, acoustic_model, linguistic_model):
+    def __init__(self, cfg):
         super(EnsembleModel, self).__init__()
-        self.acoustic_model = acoustic_model
-        self.linguistic_model =linguistic_model
+        self.acoustic_model = CNN(cfg.acoustic_config)
+        self.linguistic_model = AttentionModel(cfg.linguistic_config)
         self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
         self.fc = nn.Linear(self.feature_size, 4)
-        self.dropout = torch.nn.Dropout(0.5)
+        self.dropout = torch.nn.Dropout(0.7)
+
+    def load(self, acoustic_model, linguistic_model):
+        self.acoustic_model = acoustic_model
+        self.linguistic_model = linguistic_model
 
     def forward(self, acoustic_features, linguistic_features):
         acoustic_output_features = self.acoustic_model.extract(acoustic_features)

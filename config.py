@@ -97,3 +97,27 @@ class AcousticSpectrogramConfig(Config):
     def from_json(config_json):
         cfg = AcousticSpectrogramConfig()
         return cfg
+
+
+class EnsembleConfig(Config):
+    def __init__(self, acoustic_config, linguistic_config):
+        self.acoustic_config = acoustic_config
+        self.linguistic_config = linguistic_config
+        self.dropout = 0.7
+        self.model_weights_name = "ensemble_model.torch"
+        self.model_config_name = "ensemble_model.json"
+
+    @staticmethod
+    def from_json(config_json):
+        cfg = AcousticSpectrogramConfig()
+        cfg.acoustic_config = AcousticSpectrogramConfig.from_json(config_json["acoustic_config"])
+        cfg.linguistic_config = LinguisticConfig.from_json(config_json["linguistic_config"])
+        cfg.dropout = config_json["dropout"]
+        return cfg
+
+    def to_json(self):
+        json_obj = {}
+        json_obj["dropout"] = self.dropout
+        json_obj["acoustic_config"] = self.acoustic_config.to_json()
+        json_obj["linguistic_config"] = self.linguistic_config.to_json()
+        return json_obj
