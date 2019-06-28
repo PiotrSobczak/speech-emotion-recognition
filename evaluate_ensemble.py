@@ -72,11 +72,11 @@ if __name__ == "__main__":
     """Defining loss and optimizer"""
     criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(acoustic_model, test_iter_acoustic, criterion)
-    print("Acoustic: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    test_loss, test_acc, test_unweighted_acc, conf_mat = evaluate(acoustic_model, test_iter_acoustic, criterion)
+    print("Acoustic: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(linguistic_model, test_iter_linguistic, criterion)
-    print("Linguistic(asr=False): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    test_loss, test_acc, test_unweighted_acc, conf_mat = evaluate(linguistic_model, test_iter_linguistic, criterion)
+    print("Linguistic(asr=False): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
     ensemble_cfg_json = json.load(open(args.ensemble_model.replace(".torch", ".json"), "r"))
     ensemble_cfg = EnsembleConfig.from_json(ensemble_cfg_json)
@@ -92,25 +92,25 @@ if __name__ == "__main__":
 
     ensemble_model.eval()
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_feature_ensemble(ensemble_model, test_iter_acoustic,
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_feature_ensemble(ensemble_model, test_iter_acoustic,
                                                                                  test_iter_linguistic, criterion)
 
     print("Featue-level ensemble: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc,
-                                                                                           test_weighted_acc, conf_mat))
+                                                                                           test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "average"
     )
-    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
     print("Searching for the optimal alpha on validation set...")
 
     alphas = {}
     for alpha in np.linspace(0.01, 0.99, 49):
-        _, _, val_weighted_acc, _ = eval_decision_ensemble(
+        _, _, val_unweighted_acc, _ = eval_decision_ensemble(
             acoustic_model, linguistic_model, val_iter_acoustic, val_iter_linguistic, NLLLoss().to(device), "w_avg", alpha
         )
-        alphas[alpha] = val_weighted_acc
+        alphas[alpha] = val_unweighted_acc
     max_val = max(alphas.values())
     max_val_id = list(alphas.values()).index(max_val)
     max_val_alpha = list(alphas.keys())[max_val_id]
@@ -124,34 +124,34 @@ if __name__ == "__main__":
 
     print("Found optimal alpha={}".format(max_val_alpha))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "w_avg", max_val_alpha
     )
-    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "confidence",
     )
-    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
     print("-------------------------ASR---------------------------------------")
     test_features_linguistic, test_labels_linguistic, _, _, _, _ = load_linguistic_dataset(asr=True)
     test_iter_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(linguistic_model, test_iter_linguistic, criterion)
-    print("Linguistic(asr=True): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    test_loss, test_acc, test_unweighted_acc, conf_mat = evaluate(linguistic_model, test_iter_linguistic, criterion)
+    print("Linguistic(asr=True): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "average"
     )
-    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "w_avg", 0.55
     )
-    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
 
-    test_loss, test_acc, test_weighted_acc, conf_mat = eval_decision_ensemble(
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_decision_ensemble(
         acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "confidence",
     )
-    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_weighted_acc, conf_mat))
+    print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc, test_unweighted_acc, conf_mat))
