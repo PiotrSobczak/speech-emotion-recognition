@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     """Running training"""
     for epoch in range(500):
-        if epochs_without_improvement == ensemble_cfg.patiences:
+        if epochs_without_improvement == ensemble_cfg.patience:
             break
 
         val_loss, val_acc, val_unweighted_acc, conf_mat = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
