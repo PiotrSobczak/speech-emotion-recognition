@@ -81,7 +81,7 @@ if __name__ == "__main__":
     ensemble_cfg_json = json.load(open(args.ensemble_model.replace(".torch", ".json"), "r"))
     ensemble_cfg = EnsembleConfig.from_json(ensemble_cfg_json)
     ensemble_model = EnsembleModel(ensemble_cfg)
-    ensemble_model.float().to("cpu")
+    ensemble_model.float().to(device)
 
     try:
         ensemble_model.load_state_dict(torch.load(args.ensemble_model))

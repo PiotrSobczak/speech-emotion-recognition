@@ -147,5 +147,5 @@ if __name__ == "__main__":
     log_major(result)
     with open(result_path, "w") as file:
         file.write(result)
-    output_path = "{}/ensemble__{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    output_path = "{}/ensemble_{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
     os.rename(tmp_run_path, output_path)
