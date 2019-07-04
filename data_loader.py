@@ -26,6 +26,7 @@ SPECTROGRAMS_LABELS_PATH = "data/spectrograms_labels.npy"
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
+ID_TO_CLASS = {v: k for k, v in CLASS_TO_ID.items()}
 LAST_SESSION_SAMPLE_ID = 4290
 
 
@@ -146,8 +147,7 @@ def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1
     assert test_features.shape[0] + val_features.shape[0] + train_features.shape[0] == dataset_features.shape[0]
     return test_features, test_labels, val_features, val_labels, train_features, train_labels
 
-@timeit
-def create_spectrogram_dataset(iemocap_full_path):
+def calculate_spectrogram(wav_file, view=False):
     MAX_SPETROGRAM_LENGTH = 999  # 8 sec
     MAX_SPETROGRAM_TIME_LENGTH_POOLED = 64
     MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 64
@@ -160,35 +160,37 @@ def create_spectrogram_dataset(iemocap_full_path):
         wav.close()
         return sound_info, frame_rate
 
-    def calculate_spectrogram(wav_file, view=False):
-        """Based on https://dzone.com/articles/generating-audio-spectrograms"""
+    """Based on https://dzone.com/articles/generating-audio-spectrograms"""
 
-        """Loading wav file"""
-        sound_info, frame_rate = get_wav_info(wav_file)
+    """Loading wav file"""
+    sound_info, frame_rate = get_wav_info(wav_file)
 
-        """Creating spectrogram"""
-        spec, freqs, times, axes = pylab.specgram(sound_info, Fs=frame_rate)
+    """Creating spectrogram"""
+    spec, freqs, times, axes = pylab.specgram(sound_info, Fs=frame_rate)
 
-        """Checking dimensions of spectrogram"""
-        assert spec.shape[0] == freqs.shape[0] and spec.shape[1] == times.shape[0], "Original dimensions of spectrogram are inconsistent"
+    """Checking dimensions of spectrogram"""
+    assert spec.shape[0] == freqs.shape[0] and spec.shape[1] == times.shape[0], "Original dimensions of spectrogram are inconsistent"
 
-        """Extracting a const length spectrogram"""
-        times = times[:MAX_SPETROGRAM_LENGTH]
-        spec = spec[:, :MAX_SPETROGRAM_LENGTH]
-        assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
+    """Extracting a const length spectrogram"""
+    times = times[:MAX_SPETROGRAM_LENGTH]
+    spec = spec[:, :MAX_SPETROGRAM_LENGTH]
+    assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
 
-        spec_log = np.log(spec)
-        spec_pooled = skimage.measure.block_reduce(spec_log, (2, 15), np.mean)
-        spec_cropped = spec_pooled[:MAX_SPETROGRAM_FREQ_LENGTH_POOLED, :MAX_SPETROGRAM_TIME_LENGTH_POOLED]
-        spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
-        spectrogram[:, :spec_cropped.shape[1]] = spec_cropped
+    spec_log = np.log(spec)
+    spec_pooled = skimage.measure.block_reduce(spec_log, (2, 15), np.mean)
+    spec_cropped = spec_pooled[:MAX_SPETROGRAM_FREQ_LENGTH_POOLED, :MAX_SPETROGRAM_TIME_LENGTH_POOLED]
+    spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
+    spectrogram[:, :spec_cropped.shape[1]] = spec_cropped
 
-        if view:
-            plt.imshow(spectrogram, cmap='hot', interpolation='nearest')
-            plt.show()
+    if view:
+        plt.imshow(spectrogram, cmap='hot', interpolation='nearest')
+        plt.show()
 
-        return spectrogram
+    return spectrogram
 
+
+@timeit
+def create_spectrogram_dataset(iemocap_full_path):
     with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
         iemocap = pickle.load(handle)
 

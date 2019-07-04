@@ -4,23 +4,23 @@ from time import gmtime, strftime
 import json
 import argparse
 
-from models import AttentionModel as RNN, MobileNet as CNN
+from models import AttentionModel as RNN, CNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
 from utils import timeit, log, log_major, log_success
 from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
-
+from tensorboardX import SummaryWriter
 
 MODEL_PATH = "saved_models"
 
 
 def run_training(model, cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
-    model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/{}".format(model_run_path, cfg.model_weights_name)
-    model_config_path = "{}/{}".format(model_run_path, cfg.model_config_name)
-    result_path = "{}/result.txt".format(model_run_path)
-    os.makedirs(model_run_path, exist_ok=True)
+    tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
+    model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
+    result_path = "{}/result.txt".format(tmp_run_path)
+    os.makedirs(tmp_run_path, exist_ok=True)
 
     """Choosing hardware"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -52,26 +52,38 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     train_acc = 0
     epochs_without_improvement = 0
 
+    writer = SummaryWriter()
+
     """Running training"""
     for epoch in range(cfg.n_epochs):
         train_iterator.shuffle()
         if epochs_without_improvement == cfg.patience:
             break
 
-        val_loss, val_acc, val_weighted_acc, conf_mat = evaluate(model, validation_iterator, criterion)
+        val_loss, val_acc, val_unweighted_acc, conf_mat = evaluate(model, validation_iterator, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
             best_val_loss = val_loss
             best_val_acc = val_acc
-            best_val_weighted_acc = val_weighted_acc
+            best_val_unweighted_acc = val_unweighted_acc
             best_conf_mat = conf_mat
             epochs_without_improvement = 0
             log_success(" Epoch: {} | Val loss improved to {:.4f} | val acc: {:.3f} | weighted val acc: {:.3f} | train loss: {:.4f} | train acc: {:.3f} | saved model to {}.".format(
-                epoch, best_val_loss, best_val_acc, best_val_weighted_acc, train_loss, train_acc, model_weights_path
+                epoch, best_val_loss, best_val_acc, best_val_unweighted_acc, train_loss, train_acc, model_weights_path
             ))
 
-        train_loss, train_acc, train_weighted_acc, _ = train(model, train_iterator, optimizer, criterion, cfg.reg_ratio)
+        train_loss, train_acc, train_unweighted_acc, _ = train(model, train_iterator, optimizer, criterion, cfg.reg_ratio)
+
+        writer.add_scalars('all/losses', {"val": val_loss, "train": train_loss}, epoch)
+        writer.add_scalars('all/accuracy', {"val": val_acc, "train": train_acc}, epoch)
+        writer.add_scalars('all/unweighted_acc', {"val": val_unweighted_acc, "train": train_unweighted_acc}, epoch)
+        writer.add_scalar('val/loss', val_loss, epoch)
+        writer.add_scalar('val/val_acc', val_acc, epoch)
+        writer.add_scalar('val/val_unweighted_acc', val_unweighted_acc, epoch)
+        writer.add_scalar('train/loss', train_loss, epoch)
+        writer.add_scalar('train/train_acc', train_acc, epoch)
+        writer.add_scalar('train/train_unweighted_acc', train_unweighted_acc, epoch)
 
         epochs_without_improvement += 1
     
@@ -80,14 +92,20 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', cfg.verbose)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
+    test_loss, test_acc, test_unweighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
 
-    result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_weighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
+    result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_unweighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
     log_major("Train acc: {}".format(train_acc))
     log_major(result)
     log_major("Hyperparameters:{}".format(cfg.to_json()))
     with open(result_path, "w") as file:
         file.write(result)
+
+    writer.export_scalars_to_json("./all_scalars.json")
+    writer.close()
+
+    output_path = "{}/{}_{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, args.model_type, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    os.rename(tmp_run_path, output_path)
 
 
 if __name__ == "__main__":

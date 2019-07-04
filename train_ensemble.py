@@ -1,7 +1,6 @@
 import torch
 import os
 from time import gmtime, strftime
-from metrics import confusion_matrix
 import json
 import argparse
 import numpy as np
@@ -10,76 +9,10 @@ from models import AttentionModel, CNN, EnsembleModel
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from utils import log, log_major, log_success
-from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig
+from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
+from train_utils import eval_feature_ensemble, train_ensemble
 
 MODEL_PATH = "saved_models"
-
-
-def train(model, acoustic_iterator, linguistic_iterator, optimizer, criterion, reg_ratio):
-    model.train()
-
-    epoch_loss = 0
-    conf_mat = np.zeros((4, 4))
-
-    assert len(acoustic_iterator) == len(linguistic_iterator)
-
-    for acoustic_tuple, linguistic_tuple in zip(acoustic_iterator(), linguistic_iterator()):
-        acoustic_batch = acoustic_tuple[0]
-        acoustic_labels = acoustic_tuple[1]
-        linguistic_batch = linguistic_tuple[0]
-        linguistic_labels = linguistic_tuple[1]
-        optimizer.zero_grad()
-
-        predictions = model(acoustic_batch, linguistic_batch).squeeze(1)
-
-        loss = criterion(predictions, acoustic_labels)
-
-        reg_loss = 0
-        for param in model.parameters():
-            reg_loss += param.norm(2)
-
-        total_loss = loss + reg_ratio*reg_loss
-        total_loss.backward()
-
-        optimizer.step()
-
-        epoch_loss += loss.item()
-
-        conf_mat += confusion_matrix(predictions, acoustic_labels)
-
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])]) / conf_mat.sum()
-    acc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class) / len(acc_per_class)
-
-    return epoch_loss / len(acoustic_iterator), acc, weighted_acc, conf_mat
-
-
-def evaluate(model, acoustic_iterator, linguistic_iterator, criterion):
-    model.eval()
-
-    epoch_loss = 0
-    conf_mat = np.zeros((4, 4))
-
-    assert len(acoustic_iterator) == len(linguistic_iterator)
-
-    with torch.no_grad():
-        for acoustic_tuple, linguistic_tuple in zip(acoustic_iterator(), linguistic_iterator()):
-            acoustic_batch = acoustic_tuple[0]
-            acoustic_labels = acoustic_tuple[1]
-            linguistic_batch = linguistic_tuple[0]
-            linguistic_labels = linguistic_tuple[1]
-            predictions = model(acoustic_batch, linguistic_batch).squeeze(1)
-
-            loss = criterion(predictions.float(), acoustic_labels)
-            epoch_loss += loss.item()
-            conf_mat += confusion_matrix(predictions, acoustic_labels)
-
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    acc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class)/len(acc_per_class)
-
-    return epoch_loss / len(acoustic_iterator), acc, weighted_acc, conf_mat
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -95,14 +28,14 @@ if __name__ == "__main__":
     test_features_acoustic, test_labels_acoustic, val_features_acoustic, val_labels_acoustic, train_features_acoustic, train_labels_acoustic = load_spectrogram_dataset()
     test_features_linguistic, test_labels_linguistic, val_features_linguistic, val_labels_linguistic, train_features_linguistic, train_labels_linguistic = load_linguistic_dataset()
 
-    test_iterator_acoustic = BatchIterator(test_features_acoustic, test_labels_acoustic, 100)
-    test_iterator_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
+    test_iter_acoustic = BatchIterator(test_features_acoustic, test_labels_acoustic, 100)
+    test_iter_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
 
-    val_iterator_acoustic = BatchIterator(val_features_acoustic, val_labels_acoustic, 100)
-    val_iterator_linguistic = BatchIterator(val_features_linguistic, val_labels_linguistic, 100)
+    val_iter_acoustic = BatchIterator(val_features_acoustic, val_labels_acoustic, 100)
+    val_iter_linguistic = BatchIterator(val_features_linguistic, val_labels_linguistic, 100)
 
-    train_iterator_acoustic = BatchIterator(train_features_acoustic, train_labels_acoustic, 100)
-    train_iterator_linguistic = BatchIterator(train_features_linguistic, train_labels_linguistic, 100)
+    train_iter_acoustic = BatchIterator(train_features_acoustic, train_labels_acoustic, 100)
+    train_iter_linguistic = BatchIterator(train_features_linguistic, train_labels_linguistic, 100)
 
     assert np.array_equal(test_labels_acoustic,
                           test_labels_linguistic), "Labels for acoustic and linguistic datasets are not the same!"
@@ -128,6 +61,7 @@ if __name__ == "__main__":
         print("Failed to load model from {} without device mapping. Trying to load with mapping to {}".format(
             args.acoustic_model, device))
         acoustic_model.load_state_dict(torch.load(args.acoustic_model, map_location=device))
+
     linguistic_cfg_json = json.load(open(args.linguistic_model.replace(".torch", ".json"), "r"))
     linguistic_cfg = LinguisticConfig.from_json(linguistic_cfg_json)
 
@@ -144,12 +78,16 @@ if __name__ == "__main__":
     """Defining loss and optimizer"""
     criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    model = EnsembleModel(acoustic_model, linguistic_model)
+    ensemble_cfg = EnsembleConfig(acoustic_cfg, linguistic_cfg)
+    model = EnsembleModel(ensemble_cfg)
 
-    model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/{}".format(model_run_path, "ensemble_model.torch")
-    result_path = "{}/result.txt".format(model_run_path)
-    os.makedirs(model_run_path, exist_ok=True)
+    model.load(acoustic_model, linguistic_model)
+    tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    model_weights_path = "{}/{}".format(tmp_run_path, "ensemble_model.torch")
+    model_config_path = "{}/{}".format(tmp_run_path, "ensemble_model.json")
+    result_path = "{}/result.txt".format(tmp_run_path)
+    os.makedirs(tmp_run_path, exist_ok=True)
+    json.dump(ensemble_cfg.to_json(), open(model_config_path, "w"))
 
     """Choosing hardware"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -176,24 +114,24 @@ if __name__ == "__main__":
 
     """Running training"""
     for epoch in range(500):
-        if epochs_without_improvement == 10:
+        if epochs_without_improvement == ensemble_cfg.patiences:
             break
 
-        val_loss, val_acc, val_weighted_acc, conf_mat = evaluate(model, val_iterator_acoustic, val_iterator_linguistic, criterion)
+        val_loss, val_acc, val_unweighted_acc, conf_mat = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
             best_val_loss = val_loss
             best_val_acc = val_acc
-            best_val_weighted_acc = val_weighted_acc
+            best_val_unweighted_acc = val_unweighted_acc
             best_conf_mat = conf_mat
             epochs_without_improvement = 0
             log_success(
                 " Epoch: {} | Val loss improved to {:.4f} | val acc: {:.3f} | weighted val acc: {:.3f} | train loss: {:.4f} | train acc: {:.3f} | saved model to {}.".format(
-                    epoch, best_val_loss, best_val_acc, best_val_weighted_acc, train_loss, train_acc, model_weights_path
+                    epoch, best_val_loss, best_val_acc, best_val_unweighted_acc, train_loss, train_acc, model_weights_path
                 ))
 
-        train_loss, train_acc, train_weighted_acc, _ = train(model, train_iterator_acoustic, train_iterator_linguistic, optimizer, criterion, 0.0)
+        train_loss, train_acc, train_unweighted_acc, _ = train_ensemble(model, train_iter_acoustic, train_iter_linguistic, optimizer, criterion, 0.0)
 
         epochs_without_improvement += 1
 
@@ -202,10 +140,12 @@ if __name__ == "__main__":
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.3f}%', True)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_acc, test_weighted_acc, conf_mat = evaluate(model, test_iterator_acoustic, test_iterator_linguistic, criterion)
+    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_feature_ensemble(model, test_iter_acoustic, test_iter_linguistic, criterion)
 
-    result = f'| Epoch: {epoch + 1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc * 100:.2f}% | Weighted Test Acc: {test_weighted_acc * 100:.2f}%\n Confusion matrix:\n {conf_mat}'
+    result = f'| Epoch: {epoch + 1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc * 100:.2f}% | Weighted Test Acc: {test_unweighted_acc * 100:.2f}%\n Confusion matrix:\n {conf_mat}'
     log_major("Train acc: {}".format(train_acc))
     log_major(result)
     with open(result_path, "w") as file:
         file.write(result)
+    output_path = "{}/ensemble__{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    os.rename(tmp_run_path, output_path)
