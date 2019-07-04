@@ -233,7 +233,7 @@ class EnsembleModel(nn.Module):
         self.linguistic_model =linguistic_model
         self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
         self.fc = nn.Linear(self.feature_size, 4)
-        self.dropout = torch.nn.Dropout(0.5)
+        self.dropout = torch.nn.Dropout(0.7)
 
     def forward(self, acoustic_features, linguistic_features):
         acoustic_output_features = self.acoustic_model.extract(acoustic_features)

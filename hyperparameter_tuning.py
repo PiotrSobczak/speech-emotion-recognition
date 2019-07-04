@@ -46,8 +46,8 @@ if __name__ == "__main__":
 
         elif args.model_type == "acoustic-spectrogram":
             test_features, test_labels, val_features, val_labels, train_features, train_labels = load_spectrogram_dataset()
-            params["fc_size"] = np.random.randint(10, 200)
-            params["dropout"] = 0.2 + np.random.rand() * 0.7
+            #params["fc_size"] = np.random.randint(10, 200)
+            params["dropout"] = 0.3 + np.random.rand() * 0.6
             cfg = AcousticSpectrogramConfig(**params)
             model = CNN(cfg)
 
