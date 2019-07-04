@@ -82,11 +82,11 @@ if __name__ == "__main__":
     model = EnsembleModel(ensemble_cfg)
 
     model.load(acoustic_model, linguistic_model)
-    model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/{}".format(model_run_path, "ensemble_model.torch")
-    model_config_path = "{}/{}".format(model_run_path, "ensemble_model.json")
-    result_path = "{}/result.txt".format(model_run_path)
-    os.makedirs(model_run_path, exist_ok=True)
+    tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    model_weights_path = "{}/{}".format(tmp_run_path, "ensemble_model.torch")
+    model_config_path = "{}/{}".format(tmp_run_path, "ensemble_model.json")
+    result_path = "{}/result.txt".format(tmp_run_path)
+    os.makedirs(tmp_run_path, exist_ok=True)
     json.dump(ensemble_cfg.to_json(), open(model_config_path, "w"))
 
     """Choosing hardware"""
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     """Running training"""
     for epoch in range(500):
-        if epochs_without_improvement == 10:
+        if epochs_without_improvement == ensemble_cfg.patiences:
             break
 
         val_loss, val_acc, val_unweighted_acc, conf_mat = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
@@ -147,3 +147,5 @@ if __name__ == "__main__":
     log_major(result)
     with open(result_path, "w") as file:
         file.write(result)
+    output_path = "{}/ensemble__{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    os.rename(tmp_run_path, output_path)

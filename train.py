@@ -16,11 +16,11 @@ MODEL_PATH = "saved_models"
 
 
 def run_training(model, cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
-    model_run_path = MODEL_PATH + "/" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    model_weights_path = "{}/{}".format(model_run_path, cfg.model_weights_name)
-    model_config_path = "{}/{}".format(model_run_path, cfg.model_config_name)
-    result_path = "{}/result.txt".format(model_run_path)
-    os.makedirs(model_run_path, exist_ok=True)
+    tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
+    model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
+    result_path = "{}/result.txt".format(tmp_run_path)
+    os.makedirs(tmp_run_path, exist_ok=True)
 
     """Choosing hardware"""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -104,10 +104,13 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     writer.export_scalars_to_json("./all_scalars.json")
     writer.close()
 
+    output_path = "{}/{}_{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, args.model_type, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    os.rename(tmp_run_path, output_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model_type", type=str, default="acoustic-spectrogram")
+    parser.add_argument("-m", "--model_type", type=str, default="linguistic")
     args = parser.parse_args()
 
     if args.model_type == "linguistic":

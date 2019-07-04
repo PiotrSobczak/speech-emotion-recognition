@@ -25,7 +25,7 @@ class LinguisticConfig(Config):
         self.reg_ratio = kwargs.get("reg_ratio", 0.0015)
         self.lr = kwargs.get("lr", 0.001)
         self.batch_size = kwargs.get("batch_size", 128)
-        self.patience = kwargs.get("patience", 50)
+        self.patience = kwargs.get("patience", 30)
         self.n_epochs = kwargs.get("n_epochs", 1000)
 
         """Other parameters"""
@@ -106,6 +106,8 @@ class EnsembleConfig(Config):
         self.dropout = 0.7
         self.model_weights_name = "ensemble_model.torch"
         self.model_config_name = "ensemble_model.json"
+        self.patience = 10
+
 
     @staticmethod
     def from_json(config_json):
