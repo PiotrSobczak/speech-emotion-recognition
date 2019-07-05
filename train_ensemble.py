@@ -117,14 +117,14 @@ if __name__ == "__main__":
         if epochs_without_improvement == ensemble_cfg.patience:
             break
 
-        val_loss, val_acc, val_unweighted_acc, conf_mat = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
+        val_loss, val_acc, val_unweighted_acc, _, conf_mat = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
             best_val_loss = val_loss
             best_val_acc = val_acc
             best_val_unweighted_acc = val_unweighted_acc
-            best_conf_mat = conf_mat
+            best_conf_mat = _, conf_mat
             epochs_without_improvement = 0
             log_success(
                 " Epoch: {} | Val loss improved to {:.4f} | val acc: {:.3f} | weighted val acc: {:.3f} | train loss: {:.4f} | train acc: {:.3f} | saved model to {}.".format(
@@ -140,9 +140,9 @@ if __name__ == "__main__":
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.3f}%', True)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_acc, test_unweighted_acc, conf_mat = eval_feature_ensemble(model, test_iter_acoustic, test_iter_linguistic, criterion)
+    test_loss, test_acc, test_unweighted_acc, _, conf_mat = eval_feature_ensemble(model, test_iter_acoustic, test_iter_linguistic, criterion)
 
-    result = f'| Epoch: {epoch + 1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc * 100:.2f}% | Weighted Test Acc: {test_unweighted_acc * 100:.2f}%\n Confusion matrix:\n {conf_mat}'
+    result = f'| Epoch: {epoch + 1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc * 100:.2f}% | Weighted Test Acc: {test_unweighted_acc * 100:.2f}%\n Confusion matrix:\n {_, conf_mat}'
     log_major("Train acc: {}".format(train_acc))
     log_major(result)
     with open(result_path, "w") as file:

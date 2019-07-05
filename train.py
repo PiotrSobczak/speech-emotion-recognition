@@ -60,7 +60,7 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
         if epochs_without_improvement == cfg.patience:
             break
 
-        val_loss, val_acc, val_unweighted_acc, conf_mat = evaluate(model, validation_iterator, criterion)
+        val_loss, val_acc, val_unweighted_acc, _, conf_mat = evaluate(model, validation_iterator, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
@@ -92,7 +92,7 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', cfg.verbose)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_acc, test_unweighted_acc, conf_mat = evaluate(model, test_iterator, criterion)
+    test_loss, test_acc, test_unweighted_acc, _, conf_mat = evaluate(model, test_iterator, criterion)
 
     result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Weighted Test Acc: {test_unweighted_acc*100:.2f}%\n Confusion matrix:\n {conf_mat}'
     log_major("Train acc: {}".format(train_acc))

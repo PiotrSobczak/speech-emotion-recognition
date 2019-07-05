@@ -36,10 +36,10 @@ def train(model, iterator, optimizer, criterion, reg_ratio):
         conf_mat += confusion_matrix(predictions, labels)
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])]) / conf_mat.sum()
-    acc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class) / len(acc_per_class)
+    uacc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
+    unweighted_acc = sum(uacc_per_class) / len(uacc_per_class)
 
-    return epoch_loss / len(iterator), acc, weighted_acc, conf_mat
+    return epoch_loss / len(iterator), acc, unweighted_acc, conf_mat
 
 
 def evaluate(model, iterator, criterion):
@@ -57,10 +57,13 @@ def evaluate(model, iterator, criterion):
             conf_mat += confusion_matrix(predictions, labels)
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    acc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class)/len(acc_per_class)
+    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
+    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
 
-    return epoch_loss / len(iterator), acc, weighted_acc, conf_mat
+    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
+    average_precision = sum(prec_per_class)/len(prec_per_class)
+
+    return epoch_loss / len(iterator), acc, unweighted_acc, average_precision, conf_mat
 
 
 def eval_decision_ensemble(acoustic_model, linguistic_model, acoustic_model_iterator, linguistic_model_iterator, criterion, ensemble_type, alpha=0.5):
@@ -89,10 +92,13 @@ def eval_decision_ensemble(acoustic_model, linguistic_model, acoustic_model_iter
             conf_mat += confusion_matrix(predictions, labels)
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    acc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class)/len(acc_per_class)
+    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
+    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
 
-    return epoch_loss / len(acoustic_model_iterator), acc, weighted_acc, conf_mat
+    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
+    average_precision = sum(prec_per_class)/len(prec_per_class)
+
+    return epoch_loss / len(acoustic_model_iterator), acc, unweighted_acc, average_precision, conf_mat
 
 
 def train_ensemble(model, acoustic_iterator, linguistic_iterator, optimizer, criterion, reg_ratio):
@@ -128,10 +134,10 @@ def train_ensemble(model, acoustic_iterator, linguistic_iterator, optimizer, cri
         conf_mat += confusion_matrix(predictions, acoustic_labels)
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])]) / conf_mat.sum()
-    acc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class) / len(acc_per_class)
+    uacc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
+    unweighted_acc = sum(uacc_per_class) / len(uacc_per_class)
 
-    return epoch_loss / len(acoustic_iterator), acc, weighted_acc, conf_mat
+    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, conf_mat
 
 
 def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criterion):
@@ -155,7 +161,10 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
             conf_mat += confusion_matrix(predictions, acoustic_labels)
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    acc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    weighted_acc = sum(acc_per_class)/len(acc_per_class)
+    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
+    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
 
-    return epoch_loss / len(acoustic_iterator), acc, weighted_acc, conf_mat
+    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
+    average_precision = sum(prec_per_class)/len(prec_per_class)
+
+    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, average_precision, conf_mat
