@@ -104,8 +104,10 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     writer.export_scalars_to_json("./all_scalars.json")
     writer.close()
 
-    output_path = "{}/{}_{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, args.model_type, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
+    output_path = "{}/{}_{:.3f}Acc_{:.3f}UAcc_{}".format(MODEL_PATH, cfg.model_name, test_acc, test_unweighted_acc, strftime("%Y-%m-%d_%H:%M:%S", gmtime()))
     os.rename(tmp_run_path, output_path)
+
+    return test_loss
 
 
 if __name__ == "__main__":

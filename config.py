@@ -30,8 +30,9 @@ class LinguisticConfig(Config):
 
         """Other parameters"""
         self.verbose = kwargs.get("verbose", False)
-        self.model_weights_name = "linguistic_model.torch"
-        self.model_config_name = "linguistic_model.json"
+        self.model_name = "linguistic"
+        self.model_weights_name = "{}_model.torch".format(self.model_name)
+        self.model_config_name = "{}_model.json".format(self.model_name)
 
     @staticmethod
     def from_json(config_json):
@@ -61,8 +62,9 @@ class AcousticLLDConfig(Config):
 
         """Other parameters"""
         self.verbose = kwargs.get("verbose", False)
-        self.model_weights_name = "acoustic_lld_model.torch"
-        self.model_config_name = "acoustic_ld_model.json"
+        self.model_name = "acoustic_lld"
+        self.model_weights_name = "{}_model.torch".format(self.model_name)
+        self.model_config_name = "{}_model.json".format(self.model_name)
 
     @staticmethod
     def from_json(config_json):
@@ -90,8 +92,9 @@ class AcousticSpectrogramConfig(Config):
 
         """Other parameters"""
         self.verbose = kwargs.get("verbose", False)
-        self.model_weights_name = "acoustic_spec_model.torch"
-        self.model_config_name = "acoustic_spec_model.json"
+        self.model_name = "acoustic_spec"
+        self.model_weights_name = "{}_model.torch".format(self.model_name)
+        self.model_config_name = "{}_model.json".format(self.model_name)
 
     @staticmethod
     def from_json(config_json):
@@ -104,9 +107,10 @@ class EnsembleConfig(Config):
         self.acoustic_config = acoustic_config
         self.linguistic_config = linguistic_config
         self.dropout = 0.7
-        self.model_weights_name = "ensemble_model.torch"
-        self.model_config_name = "ensemble_model.json"
-        self.patience = 10
+        self.model_name = "ensemble"
+        self.model_weights_name = "{}_model.torch".format(self.model_name)
+        self.model_config_name = "{}_model.json".format(self.model_name)
+        self.patience = 50
 
 
     @staticmethod
