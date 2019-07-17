@@ -201,7 +201,7 @@ class CNN(nn.Module):
         self.conv4 = nn.Conv2d(cfg.num_filters[2], cfg.num_filters[3], cfg.conv_size, padding=1)
         self.pool = nn.MaxPool2d(cfg.pool_size, cfg.pool_size)
 
-        self.flat_size = cfg.num_filters[3] * 4 * 4
+        self.flat_size = cfg.num_filters[3] * 8 * 8
         self.fc2 = nn.Linear(self.flat_size, cfg.num_classes)
         self.dropout = torch.nn.Dropout(cfg.dropout)
 
