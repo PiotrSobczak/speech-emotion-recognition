@@ -69,7 +69,6 @@ class VersionAction(argparse.Action):
 class Models:
     ds = None
 
-@timeit
 def speech_to_text(model, alphabet, lm, trie, audio, extended=False):
     if not Models.ds:
         Models.ds = Model(model, N_FEATURES, N_CONTEXT, alphabet, BEAM_WIDTH)

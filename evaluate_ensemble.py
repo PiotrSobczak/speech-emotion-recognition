@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from models import AttentionModel, CNN, EnsembleModel
 from train_utils import evaluate, eval_decision_ensemble, eval_feature_ensemble
 from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
+from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset, LAST_SESSION_SAMPLE_ID
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
 
 MODEL_PATH = "saved_models"
@@ -92,8 +92,9 @@ if __name__ == "__main__":
 
     ensemble_model.eval()
 
-    test_loss, test_acc, test_unweighted_acc, _, conf_mat = eval_feature_ensemble(ensemble_model, test_iter_acoustic,
-                                                                                 test_iter_linguistic, criterion)
+    test_loss, test_acc, test_unweighted_acc, _, conf_mat, error_ids = eval_feature_ensemble(
+        ensemble_model, test_iter_acoustic, test_iter_linguistic, criterion, LAST_SESSION_SAMPLE_ID
+    )
 
     print("Featue-level ensemble: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_acc,
                                                                                            test_unweighted_acc, conf_mat))
@@ -107,10 +108,10 @@ if __name__ == "__main__":
 
     alphas = {}
     for alpha in np.linspace(0.01, 0.99, 49):
-        _, _, val_unweighted_acc, _ = eval_decision_ensemble(
+        _, accuracy, _, _, _ = eval_decision_ensemble(
             acoustic_model, linguistic_model, val_iter_acoustic, val_iter_linguistic, NLLLoss().to(device), "w_avg", alpha
         )
-        alphas[alpha] = val_unweighted_acc
+        alphas[alpha] = accuracy
     max_val = max(alphas.values())
     max_val_id = list(alphas.values()).index(max_val)
     max_val_alpha = list(alphas.keys())[max_val_id]

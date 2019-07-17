@@ -6,6 +6,7 @@ import skimage.measure
 import matplotlib.pyplot as plt
 import numpy as np
 from python_speech_features import mfcc
+import json
 
 from word2vec_wrapper import Word2VecWrapper
 from preprocessing import Preprocessor
@@ -23,10 +24,12 @@ LINGUISTIC_DATASET_ASR_PATH = "data/linguistic_features_asr.npy"
 LINGUISTIC_LABELS_ASR_PATH = "data/linguistic_labels_asr.npy"
 SPECTROGRAMS_FEATURES_PATH = "data/spectrograms_features.npy"
 SPECTROGRAMS_LABELS_PATH = "data/spectrograms_labels.npy"
+MAPPING_ID_TO_SAMPLE_PATH =  "data/id_to_sample.json"
 VAL_SIZE = 1531
 USED_CLASSES = ["neu", "hap", "sad", "ang", "exc"]
 CLASS_TO_ID = {"neu": 0, "hap": 1, "sad": 2, "ang": 3}
 ID_TO_CLASS = {v: k for k, v in CLASS_TO_ID.items()}
+ID_TO_FULL_CLASS = {0: "Neutral", 1: "Happiness", 2: "Sadness", 3: "Anger"}
 LAST_SESSION_SAMPLE_ID = 4290
 
 
@@ -147,10 +150,11 @@ def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1
     assert test_features.shape[0] + val_features.shape[0] + train_features.shape[0] == dataset_features.shape[0]
     return test_features, test_labels, val_features, val_labels, train_features, train_labels
 
+
 def calculate_spectrogram(wav_file, view=False):
     MAX_SPETROGRAM_LENGTH = 999  # 8 sec
-    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 64
-    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 64
+    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 128
+    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 128
 
     def get_wav_info(wav_file):
         wav = wave.open(wav_file, 'r')
@@ -177,20 +181,20 @@ def calculate_spectrogram(wav_file, view=False):
     assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
 
     spec_log = np.log(spec)
-    spec_pooled = skimage.measure.block_reduce(spec_log, (2, 15), np.mean)
+    spec_pooled = skimage.measure.block_reduce(spec_log, (1, 8), np.mean)
     spec_cropped = spec_pooled[:MAX_SPETROGRAM_FREQ_LENGTH_POOLED, :MAX_SPETROGRAM_TIME_LENGTH_POOLED]
     spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
     spectrogram[:, :spec_cropped.shape[1]] = spec_cropped
 
     if view:
-        plt.imshow(spectrogram, cmap='hot', interpolation='nearest')
+        plt.imshow(spec_cropped, cmap='hot', interpolation='nearest')
         plt.show()
 
     return spectrogram
 
 
 @timeit
-def create_spectrogram_dataset(iemocap_full_path):
+def create_spectrogram_dataset(iemocap_full_path, view=False):
     with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
         iemocap = pickle.load(handle)
 
@@ -203,7 +207,7 @@ def create_spectrogram_dataset(iemocap_full_path):
         sample_dir = "_".join(sample['id'].split("_")[:-1])
         sample_name = "{}.wav".format(sample['id'])
         abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
-        spectrogram = calculate_spectrogram(abs_path)
+        spectrogram = calculate_spectrogram(abs_path, view)
         spectrograms.append(spectrogram)
         if (i % 100 == 0):
             print(i)
@@ -300,6 +304,7 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
 
     labels = np.zeros(len(iemocap))
     transcriptions_emb = np.zeros((len(iemocap), sequence_len, embedding_size))
+
     for i, obj in enumerate(iemocap):
         # print("TRUE: {}\nASR:  {}".format(obj["transcription"], obj["asr_transcription"]))
         class_id = CLASS_TO_ID[obj["emotion"]]
@@ -313,6 +318,22 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
 
     np.save(dataset_path, transcriptions_emb)
     np.save(labels_path, labels)
+
+
+@timeit
+def create_mapping_from_id_to_samples(iemocap_full_path):
+    iemocap = pickle.load(open(IEMOCAP_BALANCED_ASR_PATH, "rb"))
+
+    id_to_trans_and_rec = {}
+    for i, obj in enumerate(iemocap):
+        transcription = obj["transcription"]
+        session_id = obj['id'].split('Ses0')[1][0]
+        sample_dir = "_".join(obj['id'].split("_")[:-1])
+        sample_name = "{}.wav".format(obj['id'])
+        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
+        id_to_trans_and_rec[i] = {"transcription": transcription, "path": abs_path, "emotion": obj["emotion"]}
+
+    json.dump(id_to_trans_and_rec, open(MAPPING_ID_TO_SAMPLE_PATH, "w"))
 
 
 @timeit
@@ -379,13 +400,3 @@ def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', 
         else:
             raise ValueError("Padding type '%s' not understood" % padding)
     return Xout, Mask
-
-
-if __name__ == "__main__":
-    test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
-    print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
-        test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
-    )
-    # ret = load_spectrogram_dataset("/media/piosobc/Storage Drive/IEMOCAP_full_release/IEMOCAP_full_release")
-    # plt.imshow(ret[0][0], cmap='hot', interpolation='nearest')
-    # plt.show()

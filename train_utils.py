@@ -3,7 +3,7 @@ import numpy as np
 
 from torch.nn import functional as F
 
-from metrics import confusion_matrix
+from metrics import confusion_matrix, get_error_ids
 
 
 NUM_CLASSES = 4
@@ -140,7 +140,7 @@ def train_ensemble(model, acoustic_iterator, linguistic_iterator, optimizer, cri
     return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, conf_mat
 
 
-def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criterion):
+def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criterion, global_offset=0):
     model.eval()
 
     epoch_loss = 0
@@ -149,7 +149,8 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
     assert len(acoustic_iterator) == len(linguistic_iterator)
 
     with torch.no_grad():
-        for acoustic_tuple, linguistic_tuple in zip(acoustic_iterator(), linguistic_iterator()):
+        error_ids={}
+        for i, (acoustic_tuple, linguistic_tuple) in enumerate(zip(acoustic_iterator(), linguistic_iterator())):
             acoustic_batch = acoustic_tuple[0]
             acoustic_labels = acoustic_tuple[1]
             linguistic_batch = linguistic_tuple[0]
@@ -159,6 +160,7 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
             loss = criterion(predictions.float(), acoustic_labels)
             epoch_loss += loss.item()
             conf_mat += confusion_matrix(predictions, acoustic_labels)
+            error_ids.update(get_error_ids(predictions, acoustic_labels, global_offset+i*acoustic_iterator._batch_size))
 
     acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
     uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
@@ -167,4 +169,4 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
     prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
     average_precision = sum(prec_per_class)/len(prec_per_class)
 
-    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, average_precision, conf_mat
+    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, average_precision, conf_mat, error_ids
