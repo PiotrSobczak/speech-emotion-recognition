@@ -5,6 +5,8 @@ from train import run_training
 from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
 from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
 from models import AttentionModel as RNN, CNN
+from utils import get_device
+
 NUM_ITERATIONS = 500
 
 LINGUISTIC_TUNING = True
@@ -57,5 +59,9 @@ if __name__ == "__main__":
         print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
             test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
         )
+
+        """Converting model to specified hardware and format"""
+        model.float()
+        model = model.to(get_device())
 
         run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)

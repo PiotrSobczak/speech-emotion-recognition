@@ -8,7 +8,7 @@ from models import AttentionModel as RNN, CNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
-from utils import timeit, log, log_major, log_success
+from utils import get_datetime, log, log_major, log_success, get_device
 from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
 from tensorboardX import SummaryWriter
 
@@ -16,36 +16,23 @@ MODEL_PATH = "saved_models"
 
 
 def run_training(model, cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
-    tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    tmp_run_path = MODEL_PATH + "/tmp_" + get_datetime()
     model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
     model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
     result_path = "{}/result.txt".format(tmp_run_path)
     os.makedirs(tmp_run_path, exist_ok=True)
 
-    """Choosing hardware"""
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    if device == "cuda":
-        print("Using GPU. Setting default tensor type to torch.cuda.FloatTensor")
-        torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    else:
-        print("Using CPU. Setting default tensor type to torch.FloatTensor")
-        torch.set_default_tensor_type("torch.FloatTensor")
-
     json.dump(cfg.to_json(), open(model_config_path, "w"))
-
-    """Converting model to specified hardware and format"""
-    model.float()
-    model = model.to(device)
 
     """Defining loss and optimizer"""
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     criterion = torch.nn.CrossEntropyLoss()
-    criterion = criterion.to(device)
+    criterion = criterion.to(get_device())
 
     """Creating data generators"""
-    test_iterator = BatchIterator(test_features, test_labels, 100)
+    test_iterator = BatchIterator(test_features, test_labels)
     train_iterator = BatchIterator(train_data, train_labels, cfg.batch_size)
-    validation_iterator = BatchIterator(val_data, val_labels, 100)
+    validation_iterator = BatchIterator(val_data, val_labels)
 
     train_loss = 999
     best_val_loss = 999
@@ -67,7 +54,6 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
             best_val_loss = val_loss
             best_val_acc = val_acc
             best_val_unweighted_acc = val_unweighted_acc
-            best_conf_mat = conf_mat
             epochs_without_improvement = 0
             log_success(" Epoch: {} | Val loss improved to {:.4f} | val acc: {:.3f} | weighted val acc: {:.3f} | train loss: {:.4f} | train acc: {:.3f} | saved model to {}.".format(
                 epoch, best_val_loss, best_val_acc, best_val_unweighted_acc, train_loss, train_acc, model_weights_path
@@ -129,6 +115,10 @@ if __name__ == "__main__":
         model = CNN(cfg)
     else:
         raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
+
+    """Converting model to specified hardware and format"""
+    model.float()
+    model = model.to(get_device())
 
     print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
         test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])

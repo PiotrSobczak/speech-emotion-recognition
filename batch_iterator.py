@@ -4,7 +4,9 @@ from math import ceil
 
 
 class BatchIterator:
-    def __init__(self, dataset, labels, batch_size=50):
+    DEFAULT_EVALUATE_BATCH_SIZE = 100
+
+    def __init__(self, dataset, labels, batch_size=DEFAULT_EVALUATE_BATCH_SIZE):
         self._dataset = dataset
         self._size = len(dataset)
         self._labels = labels
