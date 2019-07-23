@@ -122,7 +122,6 @@ class CNN(nn.Module):
         self.dropout = torch.nn.Dropout(cfg.dropout)
 
     def extract(self, x):
-        x = torch.Tensor(x)
         x = x.unsqueeze(1)
         for conv_layer in self.convs:
             x = self.pool(F.relu(conv_layer(x)))

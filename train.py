@@ -8,7 +8,7 @@ from models import AttentionModel as RNN, CNN
 from train_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
-from utils import get_datetime, log, log_major, log_success, get_device
+from utils import get_datetime, log, log_major, log_success, get_device, set_default_tensor
 from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
 from tensorboardX import SummaryWriter
 
@@ -21,7 +21,6 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
     result_path = "{}/result.txt".format(tmp_run_path)
     os.makedirs(tmp_run_path, exist_ok=True)
-
     json.dump(cfg.to_json(), open(model_config_path, "w"))
 
     """Defining loss and optimizer"""
@@ -100,6 +99,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model_type", type=str, default="linguistic")
     args = parser.parse_args()
+    set_default_tensor()
 
     if args.model_type == "linguistic":
         cfg = LinguisticConfig()

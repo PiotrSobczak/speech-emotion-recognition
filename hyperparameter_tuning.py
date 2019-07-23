@@ -5,7 +5,7 @@ from train import run_training
 from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
 from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
 from models import AttentionModel as RNN, CNN
-from utils import get_device
+from utils import get_device, set_default_tensor
 
 NUM_ITERATIONS = 500
 
@@ -17,6 +17,8 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("-m", "--model_type", type=str, default="linguistic")
         args = parser.parse_args()
+
+        set_default_tensor()
 
         if args.model_type == "linguistic":
             test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
