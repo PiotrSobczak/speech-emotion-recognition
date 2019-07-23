@@ -59,9 +59,10 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
             ))
 
         train_loss, train_cm = train(model, train_iterator, optimizer, criterion, cfg.reg_ratio)
+        train_acc = train_cm.accuracy
 
         writer.add_scalars('all/losses', {"val": val_loss, "train": train_loss}, epoch)
-        writer.add_scalars('all/accuracy', {"val": val_cm.accuracy, "train": train_acc}, epoch)
+        writer.add_scalars('all/accuracy', {"val": val_cm.accuracy, "train": train_cm.accuracy}, epoch)
         writer.add_scalars('all/unweighted_acc', {"val": val_cm.unweighted_accuracy, "train": train_cm.unweighted_accuracy}, epoch)
         writer.add_scalar('val/loss', val_loss, epoch)
         writer.add_scalar('val/val_acc', val_cm.accuracy, epoch)
