@@ -3,3 +3,6 @@ __pycache__
 venv
 saved_models
 *.png
+runs
+models
+data

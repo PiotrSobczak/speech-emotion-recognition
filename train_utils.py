@@ -3,7 +3,7 @@ import numpy as np
 
 from torch.nn import functional as F
 
-from metrics import confusion_matrix, get_error_ids
+from confusion_matrix import ConfusionMatrix, get_error_ids
 
 
 NUM_CLASSES = 4
@@ -13,7 +13,7 @@ def train(model, iterator, optimizer, criterion, reg_ratio):
     model.train()
 
     epoch_loss = 0
-    conf_mat = np.zeros((NUM_CLASSES, NUM_CLASSES))
+    conf_mat = ConfusionMatrix(np.zeros((NUM_CLASSES, NUM_CLASSES)))
 
     for batch, labels in iterator():
         optimizer.zero_grad()
@@ -33,20 +33,18 @@ def train(model, iterator, optimizer, criterion, reg_ratio):
 
         epoch_loss += loss.item()
 
-        conf_mat += confusion_matrix(predictions, labels)
+        conf_mat += ConfusionMatrix.from_predictions(predictions, labels)
 
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])]) / conf_mat.sum()
-    uacc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    unweighted_acc = sum(uacc_per_class) / len(uacc_per_class)
+    average_loss = epoch_loss / len(iterator)
 
-    return epoch_loss / len(iterator), acc, unweighted_acc, conf_mat
+    return average_loss, conf_mat
 
 
 def evaluate(model, iterator, criterion):
     model.eval()
 
     epoch_loss = 0
-    conf_mat = np.zeros((NUM_CLASSES, NUM_CLASSES))
+    conf_mat = ConfusionMatrix(np.zeros((NUM_CLASSES, NUM_CLASSES)))
 
     with torch.no_grad():
         for batch, labels in iterator():
@@ -54,16 +52,11 @@ def evaluate(model, iterator, criterion):
 
             loss = criterion(predictions.float(), labels)
             epoch_loss += loss.item()
-            conf_mat += confusion_matrix(predictions, labels)
+            conf_mat += ConfusionMatrix.from_predictions(predictions, labels)
 
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
+    average_loss = epoch_loss / len(iterator)
 
-    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
-    average_precision = sum(prec_per_class)/len(prec_per_class)
-
-    return epoch_loss / len(iterator), acc, unweighted_acc, average_precision, conf_mat
+    return average_loss, conf_mat
 
 
 def eval_decision_ensemble(acoustic_model, linguistic_model, acoustic_model_iterator, linguistic_model_iterator, criterion, ensemble_type, alpha=0.5):
@@ -71,7 +64,7 @@ def eval_decision_ensemble(acoustic_model, linguistic_model, acoustic_model_iter
     linguistic_model.eval()
 
     epoch_loss = 0
-    conf_mat = np.zeros((NUM_CLASSES, NUM_CLASSES))
+    conf_mat = ConfusionMatrix(np.zeros((NUM_CLASSES, NUM_CLASSES)))
 
     with torch.no_grad():
         for ((acoustic_batch, labels), (linguistic_batch, _)) in zip(acoustic_model_iterator(), linguistic_model_iterator()):
@@ -89,36 +82,30 @@ def eval_decision_ensemble(acoustic_model, linguistic_model, acoustic_model_iter
             predictions = torch.Tensor(predictions)
             loss = criterion(predictions.float(), labels)
             epoch_loss += loss.item()
-            conf_mat += confusion_matrix(predictions, labels)
+            conf_mat += ConfusionMatrix.from_predictions(predictions, labels)
 
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
+    average_loss = epoch_loss / len(acoustic_model_iterator)
 
-    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
-    average_precision = sum(prec_per_class)/len(prec_per_class)
-
-    return epoch_loss / len(acoustic_model_iterator), acc, unweighted_acc, average_precision, conf_mat
+    return average_loss, conf_mat
 
 
 def train_ensemble(model, acoustic_iterator, linguistic_iterator, optimizer, criterion, reg_ratio):
     model.train()
 
     epoch_loss = 0
-    conf_mat = np.zeros((4, 4))
+    conf_mat = ConfusionMatrix(np.zeros((NUM_CLASSES, NUM_CLASSES)))
 
     assert len(acoustic_iterator) == len(linguistic_iterator)
 
     for acoustic_tuple, linguistic_tuple in zip(acoustic_iterator(), linguistic_iterator()):
         acoustic_batch = acoustic_tuple[0]
-        acoustic_labels = acoustic_tuple[1]
+        labels = acoustic_tuple[1]
         linguistic_batch = linguistic_tuple[0]
-        linguistic_labels = linguistic_tuple[1]
         optimizer.zero_grad()
 
         predictions = model(acoustic_batch, linguistic_batch).squeeze(1)
 
-        loss = criterion(predictions, acoustic_labels)
+        loss = criterion(predictions, labels)
 
         reg_loss = 0
         for param in model.parameters():
@@ -131,20 +118,18 @@ def train_ensemble(model, acoustic_iterator, linguistic_iterator, optimizer, cri
 
         epoch_loss += loss.item()
 
-        conf_mat += confusion_matrix(predictions, acoustic_labels)
+        conf_mat += ConfusionMatrix.from_predictions(predictions, labels)
 
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])]) / conf_mat.sum()
-    uacc_per_class = [conf_mat[i, i] / conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    unweighted_acc = sum(uacc_per_class) / len(uacc_per_class)
+    average_loss = epoch_loss / len(acoustic_iterator)
 
-    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, conf_mat
+    return average_loss, conf_mat
 
 
 def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criterion, global_offset=0):
     model.eval()
 
     epoch_loss = 0
-    conf_mat = np.zeros((4, 4))
+    conf_mat = ConfusionMatrix(np.zeros((NUM_CLASSES, NUM_CLASSES)))
 
     assert len(acoustic_iterator) == len(linguistic_iterator)
 
@@ -152,21 +137,15 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
         error_ids={}
         for i, (acoustic_tuple, linguistic_tuple) in enumerate(zip(acoustic_iterator(), linguistic_iterator())):
             acoustic_batch = acoustic_tuple[0]
-            acoustic_labels = acoustic_tuple[1]
+            labels = acoustic_tuple[1]
             linguistic_batch = linguistic_tuple[0]
-            linguistic_labels = linguistic_tuple[1]
             predictions = model(acoustic_batch, linguistic_batch).squeeze(1)
 
-            loss = criterion(predictions.float(), acoustic_labels)
+            loss = criterion(predictions.float(), labels)
             epoch_loss += loss.item()
-            conf_mat += confusion_matrix(predictions, acoustic_labels)
-            error_ids.update(get_error_ids(predictions, acoustic_labels, global_offset+i*acoustic_iterator._batch_size))
+            conf_mat += ConfusionMatrix.from_predictions(predictions, labels)
+            error_ids.update(get_error_ids(predictions, labels, global_offset+i*acoustic_iterator._batch_size))
 
-    acc = sum([conf_mat[i, i] for i in range(conf_mat.shape[0])])/conf_mat.sum()
-    uacc_per_class = [conf_mat[i, i]/conf_mat[i].sum() for i in range(conf_mat.shape[0])]
-    unweighted_acc = sum(uacc_per_class)/len(uacc_per_class)
+    average_loss = epoch_loss / len(acoustic_iterator)
 
-    prec_per_class = [conf_mat[i, i] / conf_mat[:, i].sum() for i in range(conf_mat.shape[0])]
-    average_precision = sum(prec_per_class)/len(prec_per_class)
-
-    return epoch_loss / len(acoustic_iterator), acc, unweighted_acc, average_precision, conf_mat, error_ids
+    return average_loss, conf_mat

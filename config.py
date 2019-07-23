@@ -76,6 +76,7 @@ class AcousticLLDConfig(Config):
 class AcousticSpectrogramConfig(Config):
     def __init__(self, **kwargs):
         """Network hyperparameters"""
+        self.input_size = kwargs.get("hidden_dim", 128)
         self.fc_size = kwargs.get("hidden_dim", 50)
         self.conv_size = kwargs.get("conv_size", 3)
         self.pool_size = kwargs.get("pool_size", 2)

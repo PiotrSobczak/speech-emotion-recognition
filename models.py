@@ -110,23 +110,22 @@ class AttentionModel(torch.nn.Module):
 class CNN(nn.Module):
     def __init__(self, cfg):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, cfg.num_filters[0], cfg.conv_size, padding=1)
-        self.conv2 = nn.Conv2d(cfg.num_filters[0], cfg.num_filters[1], cfg.conv_size, padding=1)
-        self.conv3 = nn.Conv2d(cfg.num_filters[1], cfg.num_filters[2], cfg.conv_size, padding=1)
-        self.conv4 = nn.Conv2d(cfg.num_filters[2], cfg.num_filters[3], cfg.conv_size, padding=1)
+        self.convs = []
+        self.convs.append(nn.Conv2d(1, cfg.num_filters[0], cfg.conv_size, padding=1))
+        for i in range(len(cfg.num_filters)-1):
+            self.convs.append(nn.Conv2d(cfg.num_filters[i], cfg.num_filters[i+1], cfg.conv_size, padding=1))
         self.pool = nn.MaxPool2d(cfg.pool_size, cfg.pool_size)
 
-        self.flat_size = cfg.num_filters[3] * 8 * 8
+        self.out_size = cfg.input_size / (cfg.pool_size**len(cfg.num_filters))
+        self.flat_size = cfg.num_filters[len(cfg.num_filters)-1] * self.out_size**2
         self.fc2 = nn.Linear(self.flat_size, cfg.num_classes)
         self.dropout = torch.nn.Dropout(cfg.dropout)
 
     def extract(self, x):
         x = torch.Tensor(x)
         x = x.unsqueeze(1)
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = self.pool(F.relu(self.conv3(x)))
-        x = self.pool(F.relu(self.conv4(x)))
+        for conv_layer in self.convs:
+            x = self.pool(F.relu(conv_layer(x)))
         x = x.view(-1, self.flat_size)
         return x
 
