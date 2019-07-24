@@ -107,10 +107,10 @@ if __name__ == "__main__":
 
     alphas = {}
     for alpha in np.linspace(0.01, 0.99, 49):
-        _, accuracy, _, _, _ = eval_decision_ensemble(
+        _, val_cm = eval_decision_ensemble(
             acoustic_model, linguistic_model, val_iter_acoustic, val_iter_linguistic, NLLLoss().to(device), "w_avg", alpha
         )
-        alphas[alpha] = accuracy
+        alphas[alpha] = val_cm.accuracy
     max_val = max(alphas.values())
     max_val_id = list(alphas.values()).index(max_val)
     max_val_alpha = list(alphas.keys())[max_val_id]

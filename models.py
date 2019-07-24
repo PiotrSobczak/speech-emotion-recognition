@@ -64,8 +64,7 @@ class AttentionModel(torch.nn.Module):
         return new_hidden_state
 
     def extract(self, input):
-        input = input.swapaxes(0, 1)
-        input = torch.Tensor(input)
+        input = input.transpose(0, 1)
         input = self.dropout(input)
 
         output, (final_hidden_state, final_cell_state) = self.lstm(

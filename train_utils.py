@@ -148,4 +148,4 @@ def eval_feature_ensemble(model, acoustic_iterator, linguistic_iterator, criteri
 
     average_loss = epoch_loss / len(acoustic_iterator)
 
-    return average_loss, conf_mat
+    return average_loss, conf_mat, error_ids
