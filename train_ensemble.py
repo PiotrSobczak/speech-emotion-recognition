@@ -10,7 +10,7 @@ from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from utils import log, log_major, log_success
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
-from train_utils import eval_feature_ensemble, train_ensemble
+from train_utils import eval_ensemble, train_ensemble
 
 MODEL_PATH = "saved_models"
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         if epochs_without_improvement == ensemble_cfg.patience:
             break
 
-        val_loss, val_cm = eval_feature_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
+        val_loss, val_cm = eval_ensemble(model, val_iter_acoustic, val_iter_linguistic, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.3f}%', True)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_cm = eval_feature_ensemble(model, test_iter_acoustic, test_iter_linguistic, criterion)
+    test_loss, test_cm = eval_ensemble(model, test_iter_acoustic, test_iter_linguistic, criterion)
 
     result = f'| Epoch: {epoch + 1} | Test Loss: {test_loss:.3f} | Test Acc: {test_cm.accuracy * 100:.2f}% | Weighted Test Acc: {test_cm.unweighted_accuracy * 100:.2f}%\n Confusion matrix:\n {test_cm}'
     log_major("Train acc: {}".format(train_acc))

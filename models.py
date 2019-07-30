@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import numpy as np
 
 
 class AttentionModel(torch.nn.Module):
@@ -206,3 +207,45 @@ class MobileNet(nn.Module):
         out = self.dropout(out)
         out = self.linear(out)
         return out
+
+
+class DecisionModelEnsemble:
+    def __init__(self, acoustic_model, linguistic_model):
+        self.acoustic_model = acoustic_model
+        self.linguistic_model = linguistic_model
+
+    def ensemble_function(self, acoustic_input, linguistic_input):
+        raise Exception("Not Implemented!")
+
+    def __call__(self, acoustic_input, linguistic_input):
+        acoustic_output = F.log_softmax(self.acoustic_model(acoustic_input).squeeze(1), dim=1)
+        linguistic_output = F.log_softmax(self.linguistic_model(linguistic_input).squeeze(1), dim=1)
+        return self.ensemble_function(acoustic_output, linguistic_output)
+
+
+class AverageEnsemble(DecisionModelEnsemble):
+    def __init__(self, acoustic_model, linguistic_model):
+        super(AverageEnsemble, self).__init__(acoustic_model, linguistic_model)
+
+    def ensemble_function(self, acoustic_output, linguistic_output):
+        return (acoustic_output + linguistic_output)/2
+
+
+class WeightedAverageEnsemble(DecisionModelEnsemble):
+    def __init__(self, acoustic_model, linguistic_model, alpha):
+        super(WeightedAverageEnsemble, self).__init__(acoustic_model, linguistic_model)
+        self.alpha = alpha
+
+    def ensemble_function(self, acoustic_output, linguistic_output):
+        return acoustic_output * self.alpha + linguistic_output * (1 - self.alpha)
+
+
+class ConfidenceEnsemble(DecisionModelEnsemble):
+    def __init__(self, acoustic_model, linguistic_model):
+        super(ConfidenceEnsemble, self).__init__(acoustic_model, linguistic_model)
+
+    def ensemble_function(self, acoustic_output, linguistic_output):
+        predictions = np.zeros(acoustic_output.shape)
+        for i in range(acoustic_output.shape[0]):
+            predictions[i] = acoustic_output[i] if acoustic_output[i].max() > linguistic_output[i].max() else linguistic_output[i]
+        return predictions

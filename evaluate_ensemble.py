@@ -6,8 +6,8 @@ from os.path import isfile
 import json
 from matplotlib import pyplot as plt
 
-from models import AttentionModel, CNN, EnsembleModel
-from train_utils import evaluate, eval_decision_ensemble, eval_feature_ensemble
+from models import *
+from train_utils import evaluate, eval_ensemble
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset, LAST_SESSION_SAMPLE_ID
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
@@ -92,14 +92,16 @@ if __name__ == "__main__":
 
     ensemble_model.eval()
 
-    test_loss, test_cm, error_ids = eval_feature_ensemble(
-        ensemble_model, test_iter_acoustic, test_iter_linguistic, criterion, LAST_SESSION_SAMPLE_ID
+    test_loss, test_cm = eval_ensemble(
+        ensemble_model, test_iter_acoustic, test_iter_linguistic, criterion
     )
 
     print("Featue-level ensemble: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "average"
+    averageEnsemble = AverageEnsemble(acoustic_model, linguistic_model)
+
+    test_loss, test_cm = eval_ensemble(
+        averageEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device)
     )
     print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
@@ -107,8 +109,9 @@ if __name__ == "__main__":
 
     alphas = {}
     for alpha in np.linspace(0.01, 0.99, 49):
-        _, val_cm = eval_decision_ensemble(
-            acoustic_model, linguistic_model, val_iter_acoustic, val_iter_linguistic, NLLLoss().to(device), "w_avg", alpha
+        weightedAverageEnsemble = WeightedAverageEnsemble(acoustic_model, linguistic_model, alpha)
+        _, val_cm = eval_ensemble(
+            weightedAverageEnsemble, val_iter_acoustic, val_iter_linguistic, NLLLoss().to(device)
         )
         alphas[alpha] = val_cm.accuracy
     max_val = max(alphas.values())
@@ -124,13 +127,16 @@ if __name__ == "__main__":
 
     print("Found optimal alpha={}".format(max_val_alpha))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "w_avg", max_val_alpha
+    weightedAverageEnsemble = WeightedAverageEnsemble(acoustic_model, linguistic_model, max_val_alpha)
+
+    test_loss, test_cm = eval_ensemble(
+        weightedAverageEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device),
     )
     print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "confidence",
+    confidenceEnsemble = ConfidenceEnsemble(acoustic_model, linguistic_model)
+    test_loss, test_cm = eval_ensemble(
+        confidenceEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device),
     )
     print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
@@ -141,17 +147,20 @@ if __name__ == "__main__":
     test_loss, test_cm = evaluate(linguistic_model, test_iter_linguistic, criterion)
     print("Linguistic(asr=True): loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "average"
+    averageEnsemble = AverageEnsemble(acoustic_model, linguistic_model)
+    test_loss, test_cm = eval_ensemble(
+        averageEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device),
     )
     print("Ensemble average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "w_avg", 0.55
+    weightedAverageEnsemble = WeightedAverageEnsemble(acoustic_model, linguistic_model, max_val_alpha)
+    test_loss, test_cm = eval_ensemble(
+        weightedAverageEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device),
     )
     print("Ensemble weighted average: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = eval_decision_ensemble(
-        acoustic_model, linguistic_model, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device), "confidence",
+    confidenceEnsemble = ConfidenceEnsemble(acoustic_model, linguistic_model)
+    test_loss, test_cm = eval_ensemble(
+        confidenceEnsemble, test_iter_acoustic, test_iter_linguistic, NLLLoss().to(device),
     )
     print("Ensemble confidence: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}".format(test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
