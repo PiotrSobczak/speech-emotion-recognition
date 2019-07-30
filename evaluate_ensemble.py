@@ -1,6 +1,4 @@
-import numpy as np
 import argparse
-import torch
 from torch.nn import NLLLoss
 from os.path import isfile
 import json
@@ -9,10 +7,8 @@ from matplotlib import pyplot as plt
 from models import *
 from train_utils import evaluate, eval_ensemble
 from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset, LAST_SESSION_SAMPLE_ID
+from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
-
-MODEL_PATH = "saved_models"
 
 
 if __name__ == "__main__":

@@ -110,21 +110,24 @@ class AttentionModel(torch.nn.Module):
 class CNN(nn.Module):
     def __init__(self, cfg):
         super(CNN, self).__init__()
-        self.convs = []
-        self.convs.append(nn.Conv2d(1, cfg.num_filters[0], cfg.conv_size, padding=1))
-        for i in range(len(cfg.num_filters)-1):
-            self.convs.append(nn.Conv2d(cfg.num_filters[i], cfg.num_filters[i+1], cfg.conv_size, padding=1))
-        self.pool = nn.MaxPool2d(cfg.pool_size, cfg.pool_size)
-
+        self.conv_layers = self._build_conv_layers(cfg)
         self.out_size = cfg.input_size / (cfg.pool_size**len(cfg.num_filters))
         self.flat_size = cfg.num_filters[len(cfg.num_filters)-1] * self.out_size**2
         self.fc2 = nn.Linear(self.flat_size, cfg.num_classes)
         self.dropout = torch.nn.Dropout(cfg.dropout)
 
+    def _build_conv_layers(self, cfg):
+        conv_layers = []
+        num_channels = [1] + cfg.num_filters
+        for i in range(len(num_channels)-1):
+            conv_layers.append(nn.Conv2d(num_channels[i], num_channels[i+1], cfg.conv_size, padding=1))
+            conv_layers.append(nn.ReLU())
+            conv_layers.append(nn.MaxPool2d(cfg.pool_size, cfg.pool_size))
+        return nn.Sequential(*conv_layers)
+
     def extract(self, x):
         x = x.unsqueeze(1)
-        for conv_layer in self.convs:
-            x = self.pool(F.relu(conv_layer(x)))
+        x = self.conv_layers(x)
         x = x.view(-1, self.flat_size)
         return x
 

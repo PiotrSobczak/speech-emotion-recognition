@@ -1,12 +1,7 @@
 import torch
 import numpy as np
-
-from torch.nn import functional as F
-
-from confusion_matrix import ConfusionMatrix, get_error_ids
-
-
-NUM_CLASSES = 4
+from config import NUM_CLASSES
+from confusion_matrix import ConfusionMatrix
 
 
 def train(model, iterator, optimizer, criterion, reg_ratio):
