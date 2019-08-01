@@ -5,7 +5,7 @@ import json
 import argparse
 import numpy as np
 
-from models import AttentionModel, CNN, FeatureEnsemble
+from models import AttentionLSTM, CNN, FeatureEnsemble
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from utils import log, log_major, log_success
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     linguistic_cfg_json = json.load(open(args.linguistic_model.replace(".torch", ".json"), "r"))
     linguistic_cfg = LinguisticConfig.from_json(linguistic_cfg_json)
 
-    linguistic_model = AttentionModel(linguistic_cfg)
+    linguistic_model = AttentionLSTM(linguistic_cfg)
     linguistic_model.float().to(device)
 
     try:

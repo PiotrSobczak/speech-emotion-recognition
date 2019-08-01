@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 
 from data_loader import calculate_spectrogram, CLASS_TO_ID, ID_TO_CLASS
-from models import CNN, AttentionModel, FeatureEnsemble
+from models import CNN, AttentionLSTM, FeatureEnsemble
 from config import AcousticSpectrogramConfig, LinguisticConfig, EnsembleConfig
 from preprocessing import Preprocessor, Word2VecWrapper
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     linguistic_cfg_json = json.load(open(args.linguistic_model.replace(".torch", ".json"), "r"))
     linguistic_cfg = LinguisticConfig.from_json(linguistic_cfg_json)
     
-    linguistic_model = AttentionModel(linguistic_cfg)
+    linguistic_model = AttentionLSTM(linguistic_cfg)
     linguistic_model.float().to("cpu")
     
     try:

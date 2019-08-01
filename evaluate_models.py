@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     linguistic_cfg_json = json.load(open(args.linguistic_model.replace(".torch", ".json"), "r"))
     linguistic_cfg = LinguisticConfig.from_json(linguistic_cfg_json)
-    linguistic_model = AttentionModel(linguistic_cfg)
+    linguistic_model = AttentionLSTM(linguistic_cfg)
     linguistic_model.load(args.linguistic_model)
     
     ensemble_cfg_json = json.load(open(args.feature_ensemble.replace(".torch", ".json"), "r"))

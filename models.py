@@ -13,26 +13,19 @@ class LoadableModule(torch.nn.Module):
             print("Failed to load model from {} without device mapping. Trying to load with mapping to {}".format(
                 model_path, get_device()))
             super(LoadableModule, self).load_state_dict(torch.load(model_path, map_location=get_device()))
-            # acoustic_model.load_state_dict(torch.load(args.acoustic_model, map_location=device))
+
+    def forward(self, input):
+        raise Exception("Not implemented!")
 
 
-class AttentionModel(LoadableModule):
+class AttentionLSTM(LoadableModule):
     """Taken from https://github.com/prakashpandey9/Text-Classification-Pytorch/blob/master/models/LSTM_Attn.py"""
     def __init__(self, cfg):
-        super(AttentionModel, self).__init__()
-
         """
-        Arguments
-        ---------
-        batch_size : Size of the batch which is same as the batch_size of the data returned by the TorchText BucketIterator
-        output_size : 2 = (pos, neg)
-        hidden_sie : Size of the hidden_state of the LSTM
-        vocab_size : Size of the vocabulary containing unique words
-        embedding_length : Embeddding dimension of GloVe word embeddings
-        weights : Pre-trained GloVe word_embeddings which we will use to create our word_embedding look-up table 
-
-        --------
+        LSTM with self-Attention model.
+        :param cfg: Linguistic config object
         """
+        super(AttentionLSTM, self).__init__()
         self.batch_size = cfg.batch_size
         self.output_size = cfg.num_classes
         self.hidden_size = cfg.hidden_dim
@@ -45,28 +38,17 @@ class AttentionModel(LoadableModule):
         self.label = nn.Linear(self.hidden_size, self.output_size)
 
     def attention_net(self, lstm_output, final_state):
-
         """
-        Now we will incorporate Attention mechanism in our LSTM model. In this new model, we will use attention to compute soft alignment score corresponding
-        between each of the hidden_state and the last hidden_state of the LSTM. We will be using torch.bmm for the batch matrix multiplication.
+        This method computes soft alignment scores for each of the hidden_states and the last hidden_state of the LSTM.
+        Tensor Sizes :
+            hidden.shape = (batch_size, hidden_size)
+            attn_weights.shape = (batch_size, num_seq)
+            soft_attn_weights.shape = (batch_size, num_seq)
+            new_hidden_state.shape = (batch_size, hidden_size)
 
-        Arguments
-        ---------
-
-        lstm_output : Final output of the LSTM which contains hidden layer outputs for each sequence.
-        final_state : Final time-step hidden state (h_n) of the LSTM
-
-        ---------
-
-        Returns : It performs attention mechanism by first computing weights for each of the sequence present in lstm_output and and then finally computing the
-                  new hidden state.
-
-        Tensor Size :
-                    hidden.size() = (batch_size, hidden_size)
-                    attn_weights.size() = (batch_size, num_seq)
-                    soft_attn_weights.size() = (batch_size, num_seq)
-                    new_hidden_state.size() = (batch_size, hidden_size)
-
+        :param lstm_output: Final output of the LSTM which contains hidden layer outputs for each sequence.
+        :param final_state: Final time-step hidden state (h_n) of the LSTM
+        :return: Context vector produced by performing weighted sum of all hidden states with attention weights
         """
 
         hidden = final_state.squeeze(0)
@@ -80,9 +62,8 @@ class AttentionModel(LoadableModule):
         input = input.transpose(0, 1)
         input = self.dropout(input)
 
-        output, (final_hidden_state, final_cell_state) = self.lstm(
-            input)  # , ( h_0, c_0))  # final_hidden_state.size() = (1, batch_size, hidden_size)
-        output = output.permute(1, 0, 2)  # output.size() = (batch_size, num_seq, hidden_size)
+        output, (final_hidden_state, final_cell_state) = self.lstm(input)
+        output = output.permute(1, 0, 2)
 
         attn_output = self.attention_net(output, final_hidden_state)
         return attn_output
@@ -92,28 +73,7 @@ class AttentionModel(LoadableModule):
         logits = self.label(attn_output)
         return logits.squeeze(1)
 
-    def forward(self, input, batch_size=None):
-
-        """
-        Parameters
-        ----------
-        input_sentence: input_sentence of shape = (batch_size, num_sequences)
-        batch_size : default = None. Used only for prediction on a single sentence after training (batch_size = 1)
-
-        Returns
-        -------
-        Output of the linear layer containing logits for pos & neg class which receives its input as the new_hidden_state which is basically the output of the Attention network.
-        final_output.shape = (batch_size, output_size)
-
-        """
-        # TODO CHECK THIS h_0 and c_0 reset
-        # if batch_size is None:
-        #     h_0 = Variable(torch.zeros(1, self.batch_size, self.hidden_size).cuda())
-        #     c_0 = Variable(torch.zeros(1, self.batch_size, self.hidden_size).cuda())
-        # else:
-        #     h_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
-        #     c_0 = Variable(torch.zeros(1, batch_size, self.hidden_size).cuda())
-
+    def forward(self, input):
         attn_output = self.extract(input)
         logits = self.classify(attn_output)
         return logits
@@ -158,7 +118,7 @@ class FeatureEnsemble(LoadableModule):
     def __init__(self, cfg):
         super(FeatureEnsemble, self).__init__()
         self.acoustic_model = CNN(cfg.acoustic_config)
-        self.linguistic_model = AttentionModel(cfg.linguistic_config)
+        self.linguistic_model = AttentionLSTM(cfg.linguistic_config)
         self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
         self.fc = nn.Linear(self.feature_size, 4)
         self.dropout = torch.nn.Dropout(0.7)

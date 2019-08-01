@@ -4,7 +4,7 @@ import argparse
 from train import run_training
 from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
 from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
-from models import AttentionModel as RNN, CNN
+from models import AttentionLSTM as RNN, CNN
 from utils import get_device, set_default_tensor
 
 NUM_ITERATIONS = 500

@@ -4,7 +4,7 @@ from time import gmtime, strftime
 import json
 import argparse
 
-from models import AttentionModel as RNN, CNN
+from models import AttentionLSTM as RNN, CNN
 from model_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
