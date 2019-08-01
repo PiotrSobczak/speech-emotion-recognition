@@ -1,21 +1,16 @@
 import pickle
 from os.path import isfile, join
-import wave
-import pylab
-import skimage.measure
-import matplotlib.pyplot as plt
-import numpy as np
-from python_speech_features import mfcc
-import json
 
 from word2vec_wrapper import Word2VecWrapper
-from preprocessing import Preprocessor
+from text_preprocessing import Preprocessor
+from audio_preprocessing import *
 from utils import timeit, log
-from iemocap_utils.features import stFeatureExtraction
+
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
 IEMOCAP_BALANCED_ASR_PATH = "data/iemocap_balanced_asr.pickle"
+IEMOCAP_FULL_PATH = "data/IEMOCAP_full_release"
 LINGUISTIC_DATASET_PATH = "data/linguistic_features.npy"
 LINGUISTIC_LABELS_PATH = "data/linguistic_labels.npy"
 ACOUSTIC_FEATURES_PATH = "data/acoustic_features.npy"
@@ -44,50 +39,6 @@ def create_balanced_iemocap():
             balanced_iemocap.append(dic)
     with open(IEMOCAP_BALANCED_PATH, "wb") as file:
         pickle.dump(np.array(balanced_iemocap), file)
-
-
-@timeit
-def create_acoustic_dataset_mfcc(num_mfcc_features=26, window_len=0.025, winstep=0.01, sample_rate=16000, seq_len=800):
-    """
-    https://arxiv.org/pdf/1706.00612.pdf
-    The mean length of all turns is 4.46s (max.: 34.1s, min.: 0.6s). S
-    Since the input length for a CNN has to be equal for all samples,
-    we set the maximal length to 7.5s (mean duration plus standard deviation).
-    Longer turns are cut at 7.5s and shorter ones are padded with zeros.
-
-    speech_durations = [obj['end'] - obj[0]['start'] for obj in iemocap]
-    max_duration = np.argmax(np.array(speech_durations)) # 34.1388s
-    min_duration = np.argmin(np.array(speech_durations)) # 0.5849s
-    avg_duration = sum(seq_lens)/len(seq_lens)           # 4.549 s
-    std_dev = np.array(seq_lens).std()                   # 3.23 s
-    chosen_duration = ~ avg_duration + std_dev = 8s
-    """
-    iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
-
-    labels = np.zeros(len(iemocap))
-    mfcc_features_dataset = np.zeros((len(iemocap), seq_len, num_mfcc_features))
-
-    for i, obj in enumerate(iemocap):
-        class_id = CLASS_TO_ID[obj["emotion"]]
-        labels[i] = class_id
-        mfcc_features = mfcc(obj["signal"], sample_rate, window_len, winstep, num_mfcc_features)
-        mfcc_features = mfcc_features[:seq_len]
-        mfcc_features_dataset[i, :mfcc_features.shape[0], :mfcc_features.shape[1]] = mfcc_features
-
-    np.save(ACOUSTIC_FEATURES_PATH, mfcc_features_dataset)
-    np.save(ACOUSTIC_LABELS_PATH, labels)
-
-@timeit
-def normalize_dataset(mfcc_features):
-    averages = np.zeros((mfcc_features.shape[0], mfcc_features.shape[1], mfcc_features.shape[2]))
-    ranges = np.zeros((mfcc_features.shape[0], mfcc_features.shape[1], mfcc_features.shape[2]))
-
-    for i in range(mfcc_features.shape[0]):
-        averages[i, :, :] = (mfcc_features[i].max() + mfcc_features[i].min()) / 2
-        ranges[i, :, :] = (mfcc_features[i].max() - mfcc_features[i].min()) / 2
-
-    """NOTE, skipping subtracking average in order to leave zeros. Try normalization before zero-padding."""
-    return mfcc_features / ranges
 
 
 def split_dataset_skip(dataset_features, dataset_labels, split_ratio=0.2):
@@ -151,50 +102,25 @@ def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1
     return test_features, test_labels, val_features, val_labels, train_features, train_labels
 
 
-def calculate_spectrogram(wav_file, view=False):
-    MAX_SPETROGRAM_LENGTH = 999  # 8 sec
-    MAX_SPETROGRAM_TIME_LENGTH_POOLED = 128
-    MAX_SPETROGRAM_FREQ_LENGTH_POOLED = 128
+def load_or_create_dataset(create_func, features_path, labels_path, **kwargs):
+    """Extracting & Saving dataset"""
+    if not isfile(features_path) or not isfile(labels_path):
+        print("Dataset not found. Creating dataset...")
+        create_func(**kwargs)
+        print("Dataset created. Loading dataset...")
 
-    def get_wav_info(wav_file):
-        wav = wave.open(wav_file, 'r')
-        frames = wav.readframes(-1)
-        sound_info = pylab.fromstring(frames, 'Int16')
-        frame_rate = wav.getframerate()
-        wav.close()
-        return sound_info, frame_rate
+    """Loading dataset"""
+    dataset = np.load(features_path)
+    labels = np.load(labels_path)
+    print("Dataset loaded.")
 
-    """Based on https://dzone.com/articles/generating-audio-spectrograms"""
+    assert dataset.shape[0] == labels.shape[0]
 
-    """Loading wav file"""
-    sound_info, frame_rate = get_wav_info(wav_file)
-
-    """Creating spectrogram"""
-    spec, freqs, times, axes = pylab.specgram(sound_info, Fs=frame_rate)
-
-    """Checking dimensions of spectrogram"""
-    assert spec.shape[0] == freqs.shape[0] and spec.shape[1] == times.shape[0], "Original dimensions of spectrogram are inconsistent"
-
-    """Extracting a const length spectrogram"""
-    times = times[:MAX_SPETROGRAM_LENGTH]
-    spec = spec[:, :MAX_SPETROGRAM_LENGTH]
-    assert spec.shape[1] == times.shape[0], "Dimensions of spectrogram are inconsistent after change"
-
-    spec_log = np.log(spec)
-    spec_pooled = skimage.measure.block_reduce(spec_log, (1, 8), np.mean)
-    spec_cropped = spec_pooled[:MAX_SPETROGRAM_FREQ_LENGTH_POOLED, :MAX_SPETROGRAM_TIME_LENGTH_POOLED]
-    spectrogram = np.zeros((MAX_SPETROGRAM_FREQ_LENGTH_POOLED, MAX_SPETROGRAM_TIME_LENGTH_POOLED))
-    spectrogram[:, :spec_cropped.shape[1]] = spec_cropped
-
-    if view:
-        plt.imshow(spec_cropped, cmap='hot', interpolation='nearest')
-        plt.show()
-
-    return spectrogram
+    return split_dataset_session_wise(dataset, labels)
 
 
 @timeit
-def create_spectrogram_dataset(iemocap_full_path, view=False):
+def create_spectrogram_dataset(**kwargs):
     with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
         iemocap = pickle.load(handle)
 
@@ -206,8 +132,8 @@ def create_spectrogram_dataset(iemocap_full_path, view=False):
         session_id = sample['id'].split('Ses0')[1][0]
         sample_dir = "_".join(sample['id'].split("_")[:-1])
         sample_name = "{}.wav".format(sample['id'])
-        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
-        spectrogram = calculate_spectrogram(abs_path, view)
+        abs_path = join(IEMOCAP_FULL_PATH, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
+        spectrogram = generate_spectrogram(abs_path, kwargs.get("view", False))
         spectrograms.append(spectrogram)
         if (i % 100 == 0):
             print(i)
@@ -215,52 +141,10 @@ def create_spectrogram_dataset(iemocap_full_path, view=False):
     np.save(SPECTROGRAMS_LABELS_PATH, np.array(labels))
     np.save(SPECTROGRAMS_FEATURES_PATH, np.array(spectrograms))
 
-@timeit
-def load_spectrogram_dataset(iemocap_full_path=None):
-    """Extracting & Saving dataset"""
-    if not isfile(SPECTROGRAMS_FEATURES_PATH) or not isfile(SPECTROGRAMS_LABELS_PATH):
-        print("Spectrogram dataset not found. Creating dataset...")
-        create_spectrogram_dataset(iemocap_full_path)
-        print("Spectrogram dataset created. Loading dataset...")
-
-    """Loading Spectrogram dataset"""
-    spectrogram_dataset = np.load(SPECTROGRAMS_FEATURES_PATH)
-    spectrogram_labels = np.load(SPECTROGRAMS_LABELS_PATH)
-    print("Spectrogram dataset loaded.")
-
-    assert spectrogram_dataset.shape[0] == spectrogram_labels.shape[0]
-
-    return split_dataset_session_wise(spectrogram_dataset, spectrogram_labels)
 
 @timeit
-def create_acoustic_dataset(framerate=16000):
-    def calculate_acoustic_features(frames, freq, options):
-        # double the window duration
-        window_sec = 0.08
-        window_n = int(freq * window_sec)
-
-        st_f = stFeatureExtraction(frames, freq, window_n, window_n / 2)
-
-        if st_f.shape[1] > 2:
-            i0 = 1
-            i1 = st_f.shape[1] - 1
-            if i1 - i0 < 1:
-                i1 = i0 + 1
-
-            deriv_st_f = np.zeros((st_f.shape[0], i1 - i0), dtype=float)
-            for i in range(i0, i1):
-                i_left = i - 1
-                i_right = i + 1
-                deriv_st_f[:st_f.shape[0], i - i0] = st_f[:, i]
-            return deriv_st_f
-        elif st_f.shape[1] == 2:
-            deriv_st_f = np.zeros((st_f.shape[0], 1), dtype=float)
-            deriv_st_f[:st_f.shape[0], 0] = st_f[:, 0]
-            return deriv_st_f
-        else:
-            deriv_st_f = np.zeros((st_f.shape[0], 1), dtype=float)
-            deriv_st_f[:st_f.shape[0], 0] = st_f[:, 0]
-            return deriv_st_f
+def create_acoustic_dataset(**kwargs):
+    framerate = kwargs.get("framerate", 16000)
 
     with open(IEMOCAP_BALANCED_PATH, 'rb') as handle:
         iemocap = pickle.load(handle)
@@ -280,33 +164,18 @@ def create_acoustic_dataset(framerate=16000):
     np.save(ACOUSTIC_LABELS_PATH, np.array(acoustic_labels))
     np.save(ACOUSTIC_FEATURES_PATH, np.array(acoustic_features))
 
-@timeit
-def load_acoustic_features_dataset():
-    """Extracting & Saving dataset"""
-    if not isfile(ACOUSTIC_FEATURES_PATH) or not isfile(ACOUSTIC_LABELS_PATH):
-        print("Acoustic dataset not found. Creating dataset...")
-        create_acoustic_dataset()
-        print("Acoustic dataset created. Loading dataset...")
-
-    """Loading acoustic dataset"""
-    mfcc_features = np.load(ACOUSTIC_FEATURES_PATH)
-    mfcc_labels = np.load(ACOUSTIC_LABELS_PATH)
-    print("Acoustic dataset loaded.")
-
-    assert mfcc_features.shape[0] == mfcc_labels.shape[0]
-
-    return split_dataset_session_wise(mfcc_features, mfcc_labels)
-
 
 @timeit
-def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
+def create_linguistic_dataset(**kwargs):
+    asr = kwargs.get("asr", False)
+    sequence_len = kwargs.get("sequence_len", 30)
+    embedding_size = kwargs.get("embedding_size", 400)
     iemocap = pickle.load(open(IEMOCAP_BALANCED_ASR_PATH, "rb"))
 
     labels = np.zeros(len(iemocap))
     transcriptions_emb = np.zeros((len(iemocap), sequence_len, embedding_size))
 
     for i, obj in enumerate(iemocap):
-        # print("TRUE: {}\nASR:  {}".format(obj["transcription"], obj["asr_transcription"]))
         class_id = CLASS_TO_ID[obj["emotion"]]
         labels[i] = class_id
         transcription = obj["asr_transcription"] if asr else obj["transcription"]
@@ -321,43 +190,24 @@ def create_linguistic_dataset(asr=False, sequence_len=30, embedding_size=400):
 
 
 @timeit
-def create_mapping_from_id_to_samples(iemocap_full_path):
-    iemocap = pickle.load(open(IEMOCAP_BALANCED_ASR_PATH, "rb"))
+def load_spectrogram_dataset():
+    return load_or_create_dataset(create_spectrogram_dataset, SPECTROGRAMS_FEATURES_PATH, SPECTROGRAMS_LABELS_PATH)
 
-    id_to_trans_and_rec = {}
-    for i, obj in enumerate(iemocap):
-        transcription = obj["transcription"]
-        session_id = obj['id'].split('Ses0')[1][0]
-        sample_dir = "_".join(obj['id'].split("_")[:-1])
-        sample_name = "{}.wav".format(obj['id'])
-        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
-        id_to_trans_and_rec[i] = {"transcription": transcription, "path": abs_path, "emotion": obj["emotion"]}
 
-    json.dump(id_to_trans_and_rec, open(MAPPING_ID_TO_SAMPLE_PATH, "w"))
+@timeit
+def load_acoustic_features_dataset():
+    return load_or_create_dataset(create_acoustic_dataset, ACOUSTIC_FEATURES_PATH, ACOUSTIC_LABELS_PATH)
 
 
 @timeit
 def load_linguistic_dataset(asr=False):
     dataset_path = LINGUISTIC_DATASET_ASR_PATH if asr else LINGUISTIC_DATASET_PATH
     labels_path = LINGUISTIC_LABELS_ASR_PATH if asr else LINGUISTIC_LABELS_PATH
+    return load_or_create_dataset(create_linguistic_dataset, dataset_path, labels_path, asr=asr)
 
-    """Extracting & Saving dataset"""
-    if not isfile(dataset_path) or not isfile(labels_path):
-        print("Linguistic dataset not found. Creating dataset... ASR={}".format(asr))
-        create_linguistic_dataset(asr)
-        print("Linguistic dataset created. Loading dataset...")
-
-    """Loading linguistic dataset"""
-    linguistic_dataset = np.load(dataset_path)
-    linguistic_labels = np.load(labels_path)
-    print("Linguistic dataset loaded ASR={}".format(asr))
-
-    assert linguistic_dataset.shape[0] == linguistic_labels.shape[0]
-
-    return split_dataset_session_wise(linguistic_dataset, linguistic_labels)
 
 @timeit
-def generate_transcriptions(iemocap_full_path):
+def generate_transcriptions():
     from deepspeech_generator import speech_to_text
     print("Loading iemocap...")
     iemocap = pickle.load(open(IEMOCAP_BALANCED_PATH, "rb"))
@@ -366,37 +216,9 @@ def generate_transcriptions(iemocap_full_path):
         session_id = sample['id'].split('Ses0')[1][0]
         sample_dir = "_".join(sample['id'].split("_")[:-1])
         sample_name = "{}.wav".format(sample['id'])
-        abs_path = join(iemocap_full_path, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
+        abs_path = join(IEMOCAP_FULL_PATH, "Session{}".format(session_id), "sentences/wav/", sample_dir, sample_name)
         transcription = speech_to_text("models/output_graph.pbmm", "models/alphabet.txt", "models/lm.binary", "models/trie", abs_path)
         iemocap[i]["asr_transcription"] = transcription
         if not i % 10 and i != 0:
             log("{}/{}".format(i, len(iemocap)), True)
     pickle.dump(iemocap, open(IEMOCAP_BALANCED_ASR_PATH, "wb"))
-
-
-def pad_sequence_into_array(Xs, maxlen=None, truncating='post', padding='post', value=0.):
-
-    Nsamples = len(Xs)
-    if maxlen is None:
-        lengths = [s.shape[0] for s in Xs]    # 'sequences' must be list, 's' must be numpy array, len(s) return the first dimension of s
-        maxlen = np.max(lengths)
-
-    Xout = np.ones(shape=[Nsamples, maxlen] + list(Xs[0].shape[1:]), dtype=Xs[0].dtype) * np.asarray(value, dtype=Xs[0].dtype)
-    Mask = np.zeros(shape=[Nsamples, maxlen], dtype=Xout.dtype)
-    for i in range(Nsamples):
-        x = Xs[i]
-        if truncating == 'pre':
-            trunc = x[-maxlen:]
-        elif truncating == 'post':
-            trunc = x[:maxlen]
-        else:
-            raise ValueError("Truncating type '%s' not understood" % truncating)
-        if padding == 'post':
-            Xout[i, :len(trunc)] = trunc
-            Mask[i, :len(trunc)] = 1
-        elif padding == 'pre':
-            Xout[i, -len(trunc):] = trunc
-            Mask[i, -len(trunc):] = 1
-        else:
-            raise ValueError("Padding type '%s' not understood" % padding)
-    return Xout, Mask

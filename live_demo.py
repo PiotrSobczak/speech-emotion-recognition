@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from data_loader import calculate_spectrogram, CLASS_TO_ID, ID_TO_CLASS
 from models import CNN, AttentionLSTM, FeatureEnsemble
 from config import AcousticSpectrogramConfig, LinguisticConfig, EnsembleConfig
-from preprocessing import Preprocessor, Word2VecWrapper
+from text_preprocessing import Preprocessor, Word2VecWrapper
 
 SAMPLE_RATE = 16000
 DURATION_IN_SEC = 8
