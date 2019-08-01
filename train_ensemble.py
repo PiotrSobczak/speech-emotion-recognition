@@ -5,12 +5,12 @@ import json
 import argparse
 import numpy as np
 
-from models import AttentionModel, CNN, EnsembleModel
+from models import AttentionModel, CNN, FeatureEnsemble
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from utils import log, log_major, log_success
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
-from train_utils import eval_ensemble, train_ensemble
+from model_utils import eval_ensemble, train_ensemble
 
 MODEL_PATH = "saved_models"
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     criterion = torch.nn.CrossEntropyLoss().to(device)
 
     ensemble_cfg = EnsembleConfig(acoustic_cfg, linguistic_cfg)
-    model = EnsembleModel(ensemble_cfg)
+    model = FeatureEnsemble(ensemble_cfg)
 
     model.load(acoustic_model, linguistic_model)
     tmp_run_path = MODEL_PATH + "/tmp_" + strftime("%Y-%m-%d_%H:%M:%S", gmtime())

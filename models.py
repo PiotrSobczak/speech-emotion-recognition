@@ -2,9 +2,21 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import numpy as np
+from utils import get_device
 
 
-class AttentionModel(torch.nn.Module):
+class LoadableModule(torch.nn.Module):
+    def load(self, model_path):
+        try:
+            super(LoadableModule, self).load_state_dict()
+        except:
+            print("Failed to load model from {} without device mapping. Trying to load with mapping to {}".format(
+                model_path, get_device()))
+            super(LoadableModule, self).load_state_dict(torch.load(model_path, map_location=get_device()))
+            # acoustic_model.load_state_dict(torch.load(args.acoustic_model, map_location=device))
+
+
+class AttentionModel(LoadableModule):
     """Taken from https://github.com/prakashpandey9/Text-Classification-Pytorch/blob/master/models/LSTM_Attn.py"""
     def __init__(self, cfg):
         super(AttentionModel, self).__init__()
@@ -107,7 +119,7 @@ class AttentionModel(torch.nn.Module):
         return logits
 
 
-class CNN(nn.Module):
+class CNN(LoadableModule):
     def __init__(self, cfg):
         super(CNN, self).__init__()
         self.conv_layers = self._build_conv_layers(cfg)
@@ -142,18 +154,14 @@ class CNN(nn.Module):
         return x
 
 
-class EnsembleModel(nn.Module):
+class FeatureEnsemble(LoadableModule):
     def __init__(self, cfg):
-        super(EnsembleModel, self).__init__()
+        super(FeatureEnsemble, self).__init__()
         self.acoustic_model = CNN(cfg.acoustic_config)
         self.linguistic_model = AttentionModel(cfg.linguistic_config)
         self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
         self.fc = nn.Linear(self.feature_size, 4)
         self.dropout = torch.nn.Dropout(0.7)
-
-    def load(self, acoustic_model, linguistic_model):
-        self.acoustic_model = acoustic_model
-        self.linguistic_model = linguistic_model
 
     def forward(self, acoustic_features, linguistic_features):
         acoustic_output_features = self.acoustic_model.extract(acoustic_features)
@@ -161,12 +169,76 @@ class EnsembleModel(nn.Module):
         all_features = torch.cat((acoustic_output_features, linguistic_output_features), 1)
         return self.fc(self.dropout(all_features))
 
+    @property
+    def name(self):
+        return "Feature Ensemble"
+
+
+class DecisionEnsemble:
+    def __init__(self, acoustic_model, linguistic_model):
+        self.acoustic_model = acoustic_model
+        self.linguistic_model = linguistic_model
+
+    def __call__(self, acoustic_input, linguistic_input):
+        acoustic_output = F.log_softmax(self.acoustic_model(acoustic_input).squeeze(1), dim=1)
+        linguistic_output = F.log_softmax(self.linguistic_model(linguistic_input).squeeze(1), dim=1)
+        return self._ensemble_function(acoustic_output, linguistic_output)
+
+    def _ensemble_function(self, acoustic_input, linguistic_input):
+        raise Exception("Not Implemented!")
+
+    @property
+    def name(self):
+        raise Exception("Not Implemented!")
+
+
+class AverageEnsemble(DecisionEnsemble):
+    def __init__(self, acoustic_model, linguistic_model):
+        super(AverageEnsemble, self).__init__(acoustic_model, linguistic_model)
+
+    def _ensemble_function(self, acoustic_output, linguistic_output):
+        return (acoustic_output + linguistic_output)/2
+
+    @property
+    def name(self):
+        return "Average Ensemble"
+
+
+class WeightedAverageEnsemble(DecisionEnsemble):
+    def __init__(self, acoustic_model, linguistic_model, alpha):
+        super(WeightedAverageEnsemble, self).__init__(acoustic_model, linguistic_model)
+        self.alpha = alpha
+
+    def _ensemble_function(self, acoustic_output, linguistic_output):
+        return acoustic_output * self.alpha + linguistic_output * (1 - self.alpha)
+
+    @property
+    def name(self):
+        return "Weighted Average Ensemble"
+
+
+class ConfidenceEnsemble(DecisionEnsemble):
+    def __init__(self, acoustic_model, linguistic_model):
+        super(ConfidenceEnsemble, self).__init__(acoustic_model, linguistic_model)
+
+    def _ensemble_function(self, acoustic_output, linguistic_output):
+        predictions = np.zeros(acoustic_output.shape)
+        for i in range(acoustic_output.shape[0]):
+            predictions[i] = acoustic_output[i] if acoustic_output[i].max() > linguistic_output[i].max() else linguistic_output[i]
+        return predictions
+
+    @property
+    def name(self):
+        return "Confidence Ensemble"
+
 
 class Block(nn.Module):
     '''Depthwise conv + Pointwise conv'''
+
     def __init__(self, in_planes, out_planes, stride=1):
         super(Block, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, in_planes, kernel_size=3, stride=stride, padding=1, groups=in_planes, bias=False)
+        self.conv1 = nn.Conv2d(in_planes, in_planes, kernel_size=3, stride=stride, padding=1, groups=in_planes,
+                               bias=False)
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv2 = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn2 = nn.BatchNorm2d(out_planes)
@@ -210,45 +282,3 @@ class MobileNet(nn.Module):
         out = self.dropout(out)
         out = self.linear(out)
         return out
-
-
-class DecisionModelEnsemble:
-    def __init__(self, acoustic_model, linguistic_model):
-        self.acoustic_model = acoustic_model
-        self.linguistic_model = linguistic_model
-
-    def ensemble_function(self, acoustic_input, linguistic_input):
-        raise Exception("Not Implemented!")
-
-    def __call__(self, acoustic_input, linguistic_input):
-        acoustic_output = F.log_softmax(self.acoustic_model(acoustic_input).squeeze(1), dim=1)
-        linguistic_output = F.log_softmax(self.linguistic_model(linguistic_input).squeeze(1), dim=1)
-        return self.ensemble_function(acoustic_output, linguistic_output)
-
-
-class AverageEnsemble(DecisionModelEnsemble):
-    def __init__(self, acoustic_model, linguistic_model):
-        super(AverageEnsemble, self).__init__(acoustic_model, linguistic_model)
-
-    def ensemble_function(self, acoustic_output, linguistic_output):
-        return (acoustic_output + linguistic_output)/2
-
-
-class WeightedAverageEnsemble(DecisionModelEnsemble):
-    def __init__(self, acoustic_model, linguistic_model, alpha):
-        super(WeightedAverageEnsemble, self).__init__(acoustic_model, linguistic_model)
-        self.alpha = alpha
-
-    def ensemble_function(self, acoustic_output, linguistic_output):
-        return acoustic_output * self.alpha + linguistic_output * (1 - self.alpha)
-
-
-class ConfidenceEnsemble(DecisionModelEnsemble):
-    def __init__(self, acoustic_model, linguistic_model):
-        super(ConfidenceEnsemble, self).__init__(acoustic_model, linguistic_model)
-
-    def ensemble_function(self, acoustic_output, linguistic_output):
-        predictions = np.zeros(acoustic_output.shape)
-        for i in range(acoustic_output.shape[0]):
-            predictions[i] = acoustic_output[i] if acoustic_output[i].max() > linguistic_output[i].max() else linguistic_output[i]
-        return predictions

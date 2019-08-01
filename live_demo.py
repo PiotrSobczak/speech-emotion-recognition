@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 
 from data_loader import calculate_spectrogram, CLASS_TO_ID, ID_TO_CLASS
-from models import CNN, AttentionModel, EnsembleModel
+from models import CNN, AttentionModel, FeatureEnsemble
 from config import AcousticSpectrogramConfig, LinguisticConfig, EnsembleConfig
 from preprocessing import Preprocessor, Word2VecWrapper
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     
     ensemble_cfg_json = json.load(open(args.ensemble_model.replace(".torch", ".json"), "r"))
     ensemble_cfg = EnsembleConfig.from_json(ensemble_cfg_json)
-    ensemble_model = EnsembleModel(ensemble_cfg)
+    ensemble_model = FeatureEnsemble(ensemble_cfg)
     ensemble_model.float().to("cpu")
     
     try:

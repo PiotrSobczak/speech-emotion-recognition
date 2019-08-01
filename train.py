@@ -5,7 +5,7 @@ import json
 import argparse
 
 from models import AttentionModel as RNN, CNN
-from train_utils import evaluate, train
+from model_utils import evaluate, train
 from batch_iterator import BatchIterator
 from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
 from utils import get_datetime, log, log_major, log_success, get_device, set_default_tensor
