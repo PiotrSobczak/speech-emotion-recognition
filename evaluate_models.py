@@ -37,12 +37,12 @@ if __name__ == "__main__":
 
     """Loading models"""
     acoustic_cfg_json = json.load(open(args.acoustic_model.replace(".torch", ".json"), "r"))
-    acoustic_cfg = AcousticConfig.from_json(acoustic_cfg_json)
+    acoustic_cfg = AcousticConfig(**acoustic_cfg_json)
     acoustic_model = CNN(acoustic_cfg)
     acoustic_model.load(args.acoustic_model)
 
     linguistic_cfg_json = json.load(open(args.linguistic_model.replace(".torch", ".json"), "r"))
-    linguistic_cfg = LinguisticConfig.from_json(linguistic_cfg_json)
+    linguistic_cfg = LinguisticConfig(**linguistic_cfg_json)
     linguistic_model = AttentionLSTM(linguistic_cfg)
     linguistic_model.load(args.linguistic_model)
     

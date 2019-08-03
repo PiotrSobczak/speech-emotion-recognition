@@ -34,12 +34,6 @@ class LinguisticConfig(Config):
         self.model_weights_name = "{}_model.torch".format(self.model_name)
         self.model_config_name = "{}_model.json".format(self.model_name)
 
-    @staticmethod
-    def from_json(config_json):
-        cfg = LinguisticConfig()
-        cfg.hidden_dim = config_json["hidden_dim"]
-        return cfg
-
 
 class AcousticLLDConfig(Config):
     def __init__(self, **kwargs):
@@ -66,12 +60,6 @@ class AcousticLLDConfig(Config):
         self.model_weights_name = "{}_model.torch".format(self.model_name)
         self.model_config_name = "{}_model.json".format(self.model_name)
 
-    @staticmethod
-    def from_json(config_json):
-        cfg = AcousticLLDConfig()
-        cfg.hidden_dim = config_json["hidden_dim"]
-        return cfg
-
 
 class AcousticSpectrogramConfig(Config):
     def __init__(self, **kwargs):
@@ -97,30 +85,24 @@ class AcousticSpectrogramConfig(Config):
         self.model_weights_name = "{}_model.torch".format(self.model_name)
         self.model_config_name = "{}_model.json".format(self.model_name)
 
-    @staticmethod
-    def from_json(config_json):
-        cfg = AcousticSpectrogramConfig()
-        return cfg
-
 
 class EnsembleConfig(Config):
-    def __init__(self, acoustic_config, linguistic_config):
+    def __init__(self, acoustic_config, linguistic_config, **kwargs):
         self.acoustic_config = acoustic_config
         self.linguistic_config = linguistic_config
-        self.dropout = 0.7
         self.model_name = "ensemble"
         self.model_weights_name = "{}_model.torch".format(self.model_name)
         self.model_config_name = "{}_model.json".format(self.model_name)
-        self.patience = 50
+
+        self.patience = kwargs.get("patience", 30)
+        self.dropout = kwargs.get("dropout", 0.7)
 
 
     @staticmethod
     def from_json(config_json):
-        cfg = AcousticSpectrogramConfig()
-        cfg.acoustic_config = AcousticSpectrogramConfig.from_json(config_json["acoustic_config"])
-        cfg.linguistic_config = LinguisticConfig.from_json(config_json["linguistic_config"])
-        cfg.dropout = config_json["dropout"]
-        return cfg
+        acoustic_config = AcousticSpectrogramConfig(**config_json.pop("acoustic_config"))
+        linguistic_config = LinguisticConfig(**config_json.pop("linguistic_config"))
+        return EnsembleConfig(acoustic_config, linguistic_config, **config_json)
 
     def to_json(self):
         json_obj = {}
