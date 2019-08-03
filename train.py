@@ -16,7 +16,7 @@ MODEL_PATH = "saved_models"
 
 
 def run_training(model, cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
-    tmp_run_path = MODEL_PATH + "/tmp_" + get_datetime()
+    tmp_run_path = "/tmp/model" + get_datetime()
     model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
     model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
     result_path = "{}/result.txt".format(tmp_run_path)
