@@ -94,8 +94,12 @@ class EnsembleConfig(Config):
         self.model_weights_name = "{}_model.torch".format(self.model_name)
         self.model_config_name = "{}_model.json".format(self.model_name)
 
+        self.reg_ratio = kwargs.get("reg_ratio", 0.0)
         self.patience = kwargs.get("patience", 30)
         self.dropout = kwargs.get("dropout", 0.7)
+        self.lr = kwargs.get("lr", 0.001)
+        self.n_epochs = kwargs.get("n_epochs", 1000)
+        self.verbose = kwargs.get("verbose", False)
 
 
     @staticmethod

@@ -115,15 +115,16 @@ class CNN(LoadableModule):
 
 
 class FeatureEnsemble(LoadableModule):
-    def __init__(self, cfg):
+    def __init__(self, cfg, acoustic_model=None, linguistic_model=None):
         super(FeatureEnsemble, self).__init__()
-        self.acoustic_model = CNN(cfg.acoustic_config)
-        self.linguistic_model = AttentionLSTM(cfg.linguistic_config)
+        self.acoustic_model = acoustic_model if acoustic_model is not None else CNN(cfg.acoustic_config)
+        self.linguistic_model = linguistic_model if linguistic_model is not None else AttentionLSTM(cfg.linguistic_config)
         self.feature_size = self.linguistic_model.hidden_size + self.acoustic_model.flat_size
         self.fc = nn.Linear(self.feature_size, 4)
         self.dropout = torch.nn.Dropout(0.7)
 
-    def forward(self, acoustic_features, linguistic_features):
+    def forward(self, input_tuple):
+        acoustic_features, linguistic_features = input_tuple
         acoustic_output_features = self.acoustic_model.extract(acoustic_features)
         linguistic_output_features = self.linguistic_model.extract(linguistic_features)
         all_features = torch.cat((acoustic_output_features, linguistic_output_features), 1)

@@ -7,7 +7,7 @@ import argparse
 from models import AttentionLSTM as RNN, CNN
 from model_utils import evaluate, train
 from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
+from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset, create_batches
 from utils import get_datetime, log, log_major, log_success, get_device, set_default_tensor
 from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
 from tensorboardX import SummaryWriter
@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 MODEL_PATH = "saved_models"
 
 
-def run_training(model, cfg, test_features, test_labels, train_data, train_labels, val_data, val_labels):
+def run_training(model, cfg, test_iterator, train_iterator, validation_iterator):
     tmp_run_path = "/tmp/model" + get_datetime()
     model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
     model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
@@ -27,11 +27,6 @@ def run_training(model, cfg, test_features, test_labels, train_data, train_label
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     criterion = torch.nn.CrossEntropyLoss()
     criterion = criterion.to(get_device())
-
-    """Creating data generators"""
-    test_iterator = BatchIterator(test_features, test_labels)
-    train_iterator = BatchIterator(train_data, train_labels, cfg.batch_size)
-    validation_iterator = BatchIterator(val_data, val_labels)
 
     train_loss = 999
     best_val_loss = 999
@@ -114,16 +109,14 @@ if __name__ == "__main__":
         cfg = AcousticSpectrogramConfig()
         test_features, test_labels, val_features, val_labels, train_features, train_labels = load_spectrogram_dataset()
         model = CNN(cfg)
+
     else:
         raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
 
-    """Converting model to specified hardware and format"""
-    model.float()
-    model = model.to(get_device())
-
-    print("Subsets sizes: test_features:{}, test_labels:{}, val_features:{}, val_labels:{}, train_features:{}, train_labels:{}".format(
-        test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
-    )
+    """Creating data generators"""
+    test_iterator = BatchIterator(test_features, test_labels)
+    train_iterator = BatchIterator(train_features, train_labels, cfg.batch_size)
+    validation_iterator = BatchIterator(val_features, val_labels)
 
     """Running training"""
-    run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)
+    run_training(model, cfg, test_iterator, train_iterator, validation_iterator)

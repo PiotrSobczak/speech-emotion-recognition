@@ -5,7 +5,7 @@ from word2vec_wrapper import Word2VecWrapper
 from text_preprocessing import Preprocessor
 from audio_preprocessing import *
 from utils import timeit, log
-
+from batch_iterator import BatchIterator
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
@@ -100,6 +100,13 @@ def split_dataset_session_wise(dataset_features, dataset_labels, split_ratio=0.1
     assert train_features.shape[0] == train_labels.shape[0]
     assert test_features.shape[0] + val_features.shape[0] + train_features.shape[0] == dataset_features.shape[0]
     return test_features, test_labels, val_features, val_labels, train_features, train_labels
+
+
+def create_batches(test_features, test_labels, val_features, val_labels, train_features, train_labels, batch_size):
+    test_iterator = BatchIterator(test_features, test_labels)
+    train_iterator = BatchIterator(train_features, train_labels, batch_size)
+    validation_iterator = BatchIterator(val_features, val_labels)
+    return test_iterator, train_iterator, validation_iterator
 
 
 def load_or_create_dataset(create_func, features_path, labels_path, **kwargs):
