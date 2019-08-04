@@ -1,11 +1,12 @@
 import numpy as np
 import argparse
 
-from train import run_training
+from train import train
 from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
 from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
 from models import AttentionLSTM as RNN, CNN
-from utils import get_device, set_default_tensor
+from utils import set_default_tensor
+from batch_iterator import BatchIterator
 
 NUM_ITERATIONS = 500
 
@@ -57,8 +58,9 @@ if __name__ == "__main__":
             test_features.shape[0], test_labels.shape[0], val_features.shape[0], val_labels.shape[0], train_features.shape[0], train_labels.shape[0])
         )
 
-        """Converting model to specified hardware and format"""
-        model.float()
-        model = model.to(get_device())
+        """Creating data generators"""
+        test_iterator = BatchIterator(test_features, test_labels)
+        train_iterator = BatchIterator(train_features, train_labels, cfg.batch_size)
+        validation_iterator = BatchIterator(val_features, val_labels)
 
-        run_training(model, cfg, test_features, test_labels, train_features, train_labels, val_features, val_labels)
+        train(model, cfg, test_iterator, train_iterator, validation_iterator)

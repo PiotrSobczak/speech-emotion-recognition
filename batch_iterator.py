@@ -2,10 +2,10 @@ import torch
 import numpy as np
 from math import ceil
 
+DEFAULT_EVALUATE_BATCH_SIZE = 100
+
 
 class BatchIterator:
-    DEFAULT_EVALUATE_BATCH_SIZE = 100
-
     def __init__(self, dataset, labels, batch_size=DEFAULT_EVALUATE_BATCH_SIZE):
         self._dataset = dataset
         self._size = len(dataset)
@@ -32,13 +32,13 @@ class BatchIterator:
 
 
 class EnsembleBatchIterator:
-    def __init__(self, acoustic_iterator, linguistic_iterator):
+    def __init__(self, acoustic_iterator, linguistic_iterator, batch_size=DEFAULT_EVALUATE_BATCH_SIZE):
         self._linguistic_iterator = linguistic_iterator
         self._acoustic_iterator = acoustic_iterator
         assert self._linguistic_iterator._size == self._acoustic_iterator._size, "Inconsistent iterator sizes"
         assert self._linguistic_iterator.__len__() == self._acoustic_iterator.__len__(), "Inconsistent iterator len"
         self._size = self._linguistic_iterator._size
-        self._batch_size = 100
+        self._batch_size = batch_size
 
     def __call__(self):
         for acoustic_tuple, linguistic_tuple in zip(self._acoustic_iterator(), self._linguistic_iterator()):

@@ -8,7 +8,7 @@ from batch_iterator import EnsembleBatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset, create_batches
 
 from config import LinguisticConfig, AcousticSpectrogramConfig, EnsembleConfig
-from train import run_training
+from train import train
 
 MODEL_PATH = "saved_models"
 
@@ -46,6 +46,6 @@ if __name__ == "__main__":
     ensemble_cfg = EnsembleConfig(acoustic_cfg, linguistic_cfg)
     model = FeatureEnsemble(ensemble_cfg, acoustic_model, linguistic_model)
 
-    run_training(model, ensemble_cfg, test_iterator, train_iterator, validation_iterator)
+    train(model, ensemble_cfg, test_iterator, train_iterator, validation_iterator)
 
 

@@ -2,21 +2,16 @@ import torch
 import os
 from time import gmtime, strftime
 import json
-import argparse
 
-from models import AttentionLSTM as RNN, CNN
-from model_utils import evaluate, train
-from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset, create_batches
-from utils import get_datetime, log, log_major, log_success, get_device, set_default_tensor
-from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
+from model_utils import run_epoch_eval, run_epoch_train
+from utils import get_datetime, log, log_major, log_success, get_device
 from tensorboardX import SummaryWriter
 
 MODEL_PATH = "saved_models"
 
 
-def run_training(model, cfg, test_iterator, train_iterator, validation_iterator):
-    tmp_run_path = "/tmp/model" + get_datetime()
+def train(model, cfg, test_iterator, train_iterator, validation_iterator):
+    tmp_run_path = "/tmp/" + cfg.model_name + "_" + get_datetime()
     model_weights_path = "{}/{}".format(tmp_run_path, cfg.model_weights_name)
     model_config_path = "{}/{}".format(tmp_run_path, cfg.model_config_name)
     result_path = "{}/result.txt".format(tmp_run_path)
@@ -41,7 +36,7 @@ def run_training(model, cfg, test_iterator, train_iterator, validation_iterator)
         if epochs_without_improvement == cfg.patience:
             break
 
-        val_loss, val_cm = evaluate(model, validation_iterator, criterion)
+        val_loss, val_cm = run_epoch_eval(model, validation_iterator, criterion)
 
         if val_loss < best_val_loss:
             torch.save(model.state_dict(), model_weights_path)
@@ -53,7 +48,7 @@ def run_training(model, cfg, test_iterator, train_iterator, validation_iterator)
                 epoch, best_val_loss, best_val_acc, best_val_unweighted_acc, train_loss, train_acc, model_weights_path
             ))
 
-        train_loss, train_cm = train(model, train_iterator, optimizer, criterion, cfg.reg_ratio)
+        train_loss, train_cm = run_epoch_train(model, train_iterator, optimizer, criterion, cfg.reg_ratio)
         train_acc = train_cm.accuracy
 
         writer.add_scalars('all/losses', {"val": val_loss, "train": train_loss}, epoch)
@@ -73,7 +68,7 @@ def run_training(model, cfg, test_iterator, train_iterator, validation_iterator)
                 f'| Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.3f}%', cfg.verbose)
 
     model.load_state_dict(torch.load(model_weights_path))
-    test_loss, test_cm = evaluate(model, test_iterator, criterion)
+    test_loss, test_cm = run_epoch_eval(model, test_iterator, criterion)
 
     result = f'| Epoch: {epoch+1} | Test Loss: {test_loss:.3f} | Test Acc: {test_cm.accuracy*100:.2f}% | Weighted Test Acc: {test_cm.unweighted_accuracy*100:.2f}%\n Confusion matrix:\n {test_cm}'
     log_major("Train acc: {}".format(train_acc))
@@ -89,34 +84,3 @@ def run_training(model, cfg, test_iterator, train_iterator, validation_iterator)
     os.rename(tmp_run_path, output_path)
 
     return test_loss
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model_type", type=str, default="linguistic")
-    args = parser.parse_args()
-    set_default_tensor()
-
-    if args.model_type == "linguistic":
-        cfg = LinguisticConfig()
-        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_linguistic_dataset()
-        model = RNN(cfg)
-    elif args.model_type == "acoustic-lld":
-        cfg = AcousticLLDConfig()
-        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_acoustic_features_dataset()
-        model = RNN(cfg)
-    elif args.model_type == "acoustic-spectrogram":
-        cfg = AcousticSpectrogramConfig()
-        test_features, test_labels, val_features, val_labels, train_features, train_labels = load_spectrogram_dataset()
-        model = CNN(cfg)
-
-    else:
-        raise Exception("model_type parameter has to be one of [linguistic|acoustic-lld|acoustic-spectrogram]")
-
-    """Creating data generators"""
-    test_iterator = BatchIterator(test_features, test_labels)
-    train_iterator = BatchIterator(train_features, train_labels, cfg.batch_size)
-    validation_iterator = BatchIterator(val_features, val_labels)
-
-    """Running training"""
-    run_training(model, cfg, test_iterator, train_iterator, validation_iterator)

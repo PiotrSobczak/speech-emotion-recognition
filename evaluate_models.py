@@ -5,8 +5,8 @@ from torch.nn import CrossEntropyLoss
 from os.path import isfile
 
 from models import *
-from model_utils import evaluate, eval_ensemble, search_for_optimal_alpha
-from batch_iterator import BatchIterator
+from model_utils import run_epoch_eval, search_for_optimal_alpha
+from batch_iterator import BatchIterator, EnsembleBatchIterator
 from data_loader import load_linguistic_dataset, load_spectrogram_dataset
 from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
 
@@ -29,9 +29,11 @@ if __name__ == "__main__":
     test_features_linguistic, test_labels_linguistic, val_features_linguistic, val_labels_linguistic, _, _ = load_linguistic_dataset()
 
     test_iter_acoustic = BatchIterator(test_features_acoustic, test_labels_acoustic, 100)
-    test_iter_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
     val_iter_acoustic = BatchIterator(val_features_acoustic, val_labels_acoustic, 100)
+    test_iter_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic, 100)
     val_iter_linguistic = BatchIterator(val_features_linguistic, val_labels_linguistic, 100)
+    test_iter_ensemble = EnsembleBatchIterator(test_iter_acoustic, test_iter_linguistic, 100)
+    val_iter_ensemble = EnsembleBatchIterator(val_iter_acoustic, val_iter_linguistic, 100)
 
     assert np.array_equal(test_labels_acoustic, test_labels_linguistic), "Inconsistent acoustic and linguistic Labels!"
 
@@ -52,30 +54,29 @@ if __name__ == "__main__":
     feature_ensemble.load(args.feature_ensemble)
     feature_ensemble.eval()
 
-    optimal_alpha = search_for_optimal_alpha(acoustic_model, linguistic_model, val_iter_acoustic,
-                                             val_iter_linguistic)
+    optimal_alpha = search_for_optimal_alpha(acoustic_model, linguistic_model, val_iter_ensemble)
     weightedAverageEnsemble = WeightedAverageEnsemble(acoustic_model, linguistic_model, optimal_alpha)
     averageEnsemble = AverageEnsemble(acoustic_model, linguistic_model)
     confidenceEnsemble = ConfidenceEnsemble(acoustic_model, linguistic_model)
 
     """Evaluating models"""
     loss_function = CrossEntropyLoss()
-    test_loss, test_cm = evaluate(acoustic_model, test_iter_acoustic, loss_function)
+    test_loss, test_cm = run_epoch_eval(acoustic_model, test_iter_acoustic, loss_function)
     print(SCORE_STR.format("Acoustic", test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
-    test_loss, test_cm = evaluate(linguistic_model, test_iter_linguistic, loss_function)
+    test_loss, test_cm = run_epoch_eval(linguistic_model, test_iter_linguistic, loss_function)
     print(SCORE_STR.format("Linguistic", test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
     for ensemble_model in [feature_ensemble, weightedAverageEnsemble, averageEnsemble, confidenceEnsemble]:
-        test_loss, test_cm = eval_ensemble(ensemble_model, test_iter_acoustic, test_iter_linguistic, loss_function)
+        test_loss, test_cm = run_epoch_eval(ensemble_model, test_iter_ensemble, loss_function)
         print(SCORE_STR.format(ensemble_model.name, test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
     test_features_linguistic, test_labels_linguistic, _, _, _, _ = load_linguistic_dataset(asr=True)
     test_iter_linguistic = BatchIterator(test_features_linguistic, test_labels_linguistic)
 
-    test_loss, test_cm = evaluate(linguistic_model, test_iter_linguistic, loss_function)
+    test_loss, test_cm = run_epoch_eval(linguistic_model, test_iter_linguistic, loss_function)
     print(SCORE_STR.format("Linguistic(ASR)", test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
 
     for ensemble_model in [weightedAverageEnsemble, averageEnsemble, confidenceEnsemble, feature_ensemble]:
-        test_loss, test_cm = eval_ensemble(ensemble_model, test_iter_acoustic, test_iter_linguistic, loss_function)
+        test_loss, test_cm = run_epoch_eval(ensemble_model, test_iter_ensemble, loss_function)
         print(SCORE_STR.format(ensemble_model.name+"(ASR)", test_loss, test_cm.accuracy, test_cm.unweighted_accuracy, test_cm))
