@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from config import NUM_CLASSES
+from ser.config import NUM_CLASSES
 
 
 class ConfusionMatrix:

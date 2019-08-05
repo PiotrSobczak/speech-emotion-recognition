@@ -1,9 +1,9 @@
-import numpy  as np
+import numpy as np
 import pylab
 import skimage
 import wave
 
-from iemocap_utils.features import stFeatureExtraction
+from ser.iemocap_utils.features import stFeatureExtraction
 
 
 def calculate_acoustic_features(frames, freq, options):

@@ -1,11 +1,11 @@
 import pickle
 from os.path import isfile, join
 
-from word2vec_wrapper import Word2VecWrapper
-from text_preprocessing import Preprocessor
-from audio_preprocessing import *
-from utils import timeit, log
-from batch_iterator import BatchIterator
+from ser.word2vec_wrapper import Word2VecWrapper
+from ser.text_preprocessing import Preprocessor
+from ser.audio_preprocessing import *
+from ser.utils import timeit, log
+from ser.batch_iterator import BatchIterator
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"

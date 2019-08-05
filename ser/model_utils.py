@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from config import NUM_CLASSES
-from confusion_matrix import ConfusionMatrix
-from models import WeightedAverageEnsemble
+
+from ser.config import NUM_CLASSES
+from ser.confusion_matrix import ConfusionMatrix
+from ser.models import WeightedAverageEnsemble
 
 
 def run_epoch_train(model, iterator, optimizer, criterion, reg_ratio):

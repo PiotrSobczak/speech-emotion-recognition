@@ -4,11 +4,11 @@ import json
 from torch.nn import CrossEntropyLoss
 from os.path import isfile
 
-from models import *
-from model_utils import run_epoch_eval, search_for_optimal_alpha
-from batch_iterator import BatchIterator, EnsembleBatchIterator
-from data_loader import load_linguistic_dataset, load_spectrogram_dataset
-from config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
+from ser.models import *
+from ser.model_utils import run_epoch_eval, search_for_optimal_alpha
+from ser.batch_iterator import BatchIterator, EnsembleBatchIterator
+from ser.data_loader import load_linguistic_dataset, load_spectrogram_dataset
+from ser.config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
 
 
 SCORE_STR = "{}: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}"
@@ -20,10 +20,12 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--feature_ensemble", type=str, required=True)
     args = parser.parse_args()
 
-    assert isfile(args.acoustic_model), "acoustic_model weights file does not exist"
-    assert isfile(args.acoustic_model.replace(".torch", ".json")), "acoustic_model config file does not exist"
-    assert isfile(args.linguistic_model), "linguistic_model weights file does not exist"
-    assert isfile(args.linguistic_model.replace(".torch", ".json")), "linguistic_model config file does not exist"
+    acoustic_config = args.acoustic_model.replace(".torch", ".json")
+    linguistic_config = args.linguistic_model.replace(".torch", ".json")
+    assert isfile(args.acoustic_model), "{} does not exist".format(args.acoustic_model)
+    assert isfile(acoustic_config), "{} config file does not exist".format(acoustic_config)
+    assert isfile(args.linguistic_model), "{} does not exist".format(args.linguistic_model)
+    assert isfile(linguistic_config), "{} file does not exist".format(linguistic_config)
 
     test_features_acoustic, test_labels_acoustic, val_features_acoustic, val_labels_acoustic, _, _ = load_spectrogram_dataset()
     test_features_linguistic, test_labels_linguistic, val_features_linguistic, val_labels_linguistic, _, _ = load_linguistic_dataset()

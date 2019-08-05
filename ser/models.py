@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import numpy as np
-from utils import get_device
+
+from ser.utils import get_device
 
 
 class LoadableModule(torch.nn.Module):

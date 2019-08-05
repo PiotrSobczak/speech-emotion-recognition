@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from data_loader import load_linguistic_dataset, CLASS_TO_ID
+
+from ser.data_loader import load_linguistic_dataset, CLASS_TO_ID
 
 scores = [72.1, 71.8, 71.1, 68.4, 64.8, 64.5, 64.1, 63.5, 56.1]
 legend = ["A", "B", "C", "D", "E", "F", "G", "H"]

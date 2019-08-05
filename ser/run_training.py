@@ -1,11 +1,11 @@
 import argparse
 
-from models import AttentionLSTM as RNN, CNN
-from batch_iterator import BatchIterator
-from data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
-from utils import set_default_tensor
-from config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
-from train import train
+from ser.models import AttentionLSTM as RNN, CNN
+from ser.batch_iterator import BatchIterator
+from ser.data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
+from ser.utils import set_default_tensor
+from ser.config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
+from ser.train import train
 
 MODEL_PATH = "saved_models"
 

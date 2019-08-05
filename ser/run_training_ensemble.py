@@ -3,12 +3,12 @@ import os
 import json
 import argparse
 
-from models import AttentionLSTM, CNN, FeatureEnsemble
-from batch_iterator import EnsembleBatchIterator
-from data_loader import load_linguistic_dataset, load_spectrogram_dataset, create_batches
+from ser.models import AttentionLSTM, CNN, FeatureEnsemble
+from ser.batch_iterator import EnsembleBatchIterator
+from ser.data_loader import load_linguistic_dataset, load_spectrogram_dataset, create_batches
 
-from config import LinguisticConfig, AcousticSpectrogramConfig, EnsembleConfig
-from train import train
+from ser.config import LinguisticConfig, AcousticSpectrogramConfig, EnsembleConfig
+from ser.train import train
 
 MODEL_PATH = "saved_models"
 

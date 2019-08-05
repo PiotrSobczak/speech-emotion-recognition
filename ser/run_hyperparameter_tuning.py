@@ -1,12 +1,12 @@
 import numpy as np
 import argparse
 
-from train import train
-from config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
-from data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
-from models import AttentionLSTM as RNN, CNN
-from utils import set_default_tensor
-from batch_iterator import BatchIterator
+from ser.train import train
+from ser.config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
+from ser.data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
+from ser.models import AttentionLSTM as RNN, CNN
+from ser.utils import set_default_tensor
+from ser.batch_iterator import BatchIterator
 
 NUM_ITERATIONS = 500
 

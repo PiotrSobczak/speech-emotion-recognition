@@ -1,4 +1,4 @@
-from word2vec_wrapper import Word2VecWrapper
+from ser.word2vec_wrapper import Word2VecWrapper
 
 
 class Preprocessor:
