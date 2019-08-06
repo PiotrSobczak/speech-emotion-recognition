@@ -34,27 +34,38 @@ References:
 [[8](https://kundoc.com/queue/pdf-evaluating-deep-learning-architectures-for-speech-emotion-recognition-.html)]
 [[9](http://www.utdallas.edu/~mirsamadi/files/mirsamadi17a.pdf)]
 
-# System Architecture
-<img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/ensemble_arch_live.png" width="600"></img>
+# Tested Architectures
 
-# Results so far
+### Acoustic Architectures
 
-| Model | Accuracy | Unweighted Accuracy  | Loss  |
-|---|---|---|---|
-| Acoustic  |  0.602 | 0.601  | 0.983  |
-| Linguistic  | 0.642  | 0.638  | 0.913  |
-| Ensemble (highest confidence) | 0.699  | 0.704  | 0.827  |
-| Ensemble (average) | 0.711  | 0.708  | 0.948  |
-| Ensemble (weighted average) | 0.716  | 0.712  | 0.944  |
+| Classifier Architecture | Input type | Accuracy [%] |
+|---|---|---|
+| Convolutional Neural Network | Spectrogram | 55.3 
+| Bidirectional LSTM with self-attention | LLD features  | 53.2  |
 
-### Confusion matrix of the best model
-```
-loss: 0.944, acc: 0.716. unweighted acc: 0.712, conf_mat: 
-[[291.  60.  31.   9.]
- [ 88. 282.  17.   6.]
- [ 46.  19. 191.   2.]
- [ 61.  26.   4. 167.]]
-```
+### Linguistic Architectures
+
+| Classifier Architecture | Input type | Accuracy[%] |
+|---|---|---|
+| LSTM | Transcription | 58.9 | 
+| Bidirectional LSTM | Transcription  | 59.4 |
+| Bidirectional LSTM with self-attention | Transcription  | 63.1  |
+
+### Ensemble Architectures
+Ensemble architectures make use of the most accurate acoustic and linguistic architectures. This means that linguistic model with bidirectional LSTM with self-attention architecture and acoustic model with Convolutional architecture are being used.
+
+| Ensemble type |  Accuracy |
+|---|---|
+| Decision-level Ensemble(maximum confidence) | 66.7 |
+| Decision-level Ensemble(average)  | 68.8 |
+| Decision-level Ensemble(weighted average)  | 69.0 |
+| Feature-level Ensemble  | 71.1 |
+
+# Feature-level Ensemble Architecture  
+<img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/feature_ensemble_arch.png" width="600"></img>
+
+# Feature-level Ensemble Confusion Matrix
+<img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/confusion_matrix.png" width="600"></img>
 
 *classes in order: [Neutral, Happiness, Sadness, Anger]  
 *row - correct class, column - prediction
