@@ -62,35 +62,35 @@ loss: 0.944, acc: 0.716. unweighted acc: 0.712, conf_mat:
 # How to run? 
 ### Run hyperparameter tuning
 ```
-python3 -m ser.run_hyperparameter_tuning -m acoustic-spectrogram
+python3 -m speech_emotion_recognition.run_hyperparameter_tuning -m acoustic-spectrogram
 ```
 ### Run training
 ```
-python3 -m ser.run_training_ensemble -m acoustic-spectrogram
+python3 -m speech_emotion_recognition.run_training_ensemble -m acoustic-spectrogram
 ```
 ### Run ensemble training
 ```
-python3 -m ser.run_training_ensemble -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch
+python3 -m speech_emotion_recognition.run_training_ensemble -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch
 ```
 ### Run evaluation
 ```
-python3 -m ser.run_evaluate -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch -e /path/to/ensemble_model.torch
+python3 -m speech_emotion_recognition.run_evaluate -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch -e /path/to/ensemble_model.torch
 ```
 
 # How to run in docker?(CPU only)
 ### Run hyperparameter tuning
 ```
-docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m ser.run_hyperparameter_tuning -m acoustic-spectrogram
+docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m speech_emotion_recognition.run_hyperparameter_tuning -m acoustic-spectrogram
 ```
 ### Run training
 ```
-docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m ser.run_training_ensemble -m acoustic-spectrogram
+docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m speech_emotion_recognition.run_training_ensemble -m acoustic-spectrogram
 ```
 ### Run ensemble training
 ```
-docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m ser.run_training_ensemble -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch
+docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m speech_emotion_recognition.run_training_ensemble -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch
 ```
 ### Run evaluation
 ```
-docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m ser.run_evaluate -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch -e /path/to/ensemble_model.torch
+docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m speech_emotion_recognition.run_evaluate -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch -e /path/to/ensemble_model.torch
 ```
