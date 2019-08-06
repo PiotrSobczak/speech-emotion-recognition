@@ -59,7 +59,7 @@ loss: 0.944, acc: 0.716. unweighted acc: 0.712, conf_mat:
 *classes in order: [Neutral, Happiness, Sadness, Anger]  
 *row - correct class, column - prediction
 
-# Running 
+# How to run? 
 ### Run hyperparameter tuning
 ```
 python3 -m ser.run_hyperparameter_tuning -m acoustic-spectrogram
@@ -77,7 +77,7 @@ python3 -m ser.run_training_ensemble -a /path/to/acoustic_spec_model.torch -l /p
 python3 -m ser.run_evaluate -a /path/to/acoustic_spec_model.torch -l /path/to/linguistic_model.torch -e /path/to/ensemble_model.torch
 ```
 
-# Running in docker
+# How to run in docker?(CPU only)
 ### Run hyperparameter tuning
 ```
 docker run -t -v /path/to/project/data:/data -v /path/to/project/saved_models:/saved_models -v /tmp:/tmp speech-emotion-recognition -m ser.run_hyperparameter_tuning -m acoustic-spectrogram
