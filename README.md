@@ -67,9 +67,6 @@ Ensemble architectures make use of the most accurate acoustic and linguistic arc
 # Feature-level Ensemble Confusion Matrix
 <img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/confusion_matrix.png" width="600"></img>
 
-*classes in order: [Neutral, Happiness, Sadness, Anger]  
-*row - correct class, column - prediction
-
 # How to run? 
 ### Run hyperparameter tuning
 ```
