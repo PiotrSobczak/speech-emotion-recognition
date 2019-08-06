@@ -1,4 +1,4 @@
-from ser.word2vec_wrapper import Word2VecWrapper
+from speech_emotion_recognition.word2vec_wrapper import Word2VecWrapper
 
 
 class Preprocessor:

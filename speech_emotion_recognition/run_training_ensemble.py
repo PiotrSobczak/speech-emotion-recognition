@@ -3,12 +3,11 @@ import os
 import json
 import argparse
 
-from ser.models import AttentionLSTM, CNN, FeatureEnsemble
-from ser.batch_iterator import EnsembleBatchIterator
-from ser.data_loader import load_linguistic_dataset, load_spectrogram_dataset, create_batches
-
-from ser.config import LinguisticConfig, AcousticSpectrogramConfig, EnsembleConfig
-from ser.train import train
+from speech_emotion_recognition.models import AttentionLSTM, CNN, FeatureEnsemble
+from speech_emotion_recognition.batch_iterator import EnsembleBatchIterator
+from speech_emotion_recognition.data_loader import load_linguistic_dataset, load_spectrogram_dataset, create_batches
+from speech_emotion_recognition.config import LinguisticConfig, AcousticSpectrogramConfig, EnsembleConfig
+from speech_emotion_recognition.train import train
 
 MODEL_PATH = "saved_models"
 

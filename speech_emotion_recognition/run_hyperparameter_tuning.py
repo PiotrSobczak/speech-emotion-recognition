@@ -1,12 +1,12 @@
 import numpy as np
 import argparse
 
-from ser.train import train
-from ser.config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
-from ser.data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
-from ser.models import AttentionLSTM as RNN, CNN
-from ser.utils import set_default_tensor
-from ser.batch_iterator import BatchIterator
+from speech_emotion_recognition.train import train
+from speech_emotion_recognition.config import LinguisticConfig, AcousticSpectrogramConfig, AcousticLLDConfig
+from speech_emotion_recognition.data_loader import load_acoustic_features_dataset, load_linguistic_dataset, load_spectrogram_dataset
+from speech_emotion_recognition.models import AttentionLSTM as RNN, CNN
+from speech_emotion_recognition.utils import set_default_tensor
+from speech_emotion_recognition.batch_iterator import BatchIterator
 
 NUM_ITERATIONS = 500
 

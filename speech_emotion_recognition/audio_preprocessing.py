@@ -3,7 +3,7 @@ import pylab
 import skimage
 import wave
 
-from ser.iemocap_utils.features import stFeatureExtraction
+from speech_emotion_recognition.iemocap_utils.features import stFeatureExtraction
 
 
 def calculate_acoustic_features(frames, freq, options):

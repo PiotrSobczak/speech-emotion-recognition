@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from ser.config import NUM_CLASSES
+from speech_emotion_recognition.config import NUM_CLASSES
 
 
 class ConfusionMatrix:

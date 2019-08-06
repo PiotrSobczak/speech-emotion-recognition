@@ -1,11 +1,11 @@
 import argparse
 
-from ser.models import AttentionLSTM as RNN, CNN
-from ser.batch_iterator import BatchIterator
-from ser.data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
-from ser.utils import set_default_tensor
-from ser.config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
-from ser.train import train
+from speech_emotion_recognition.models import AttentionLSTM as RNN, CNN
+from speech_emotion_recognition.batch_iterator import BatchIterator
+from speech_emotion_recognition.data_loader import load_linguistic_dataset, load_acoustic_features_dataset, load_spectrogram_dataset
+from speech_emotion_recognition.utils import set_default_tensor
+from speech_emotion_recognition.config import LinguisticConfig, AcousticLLDConfig, AcousticSpectrogramConfig
+from speech_emotion_recognition.train import train
 
 MODEL_PATH = "saved_models"
 

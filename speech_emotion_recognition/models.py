@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 import numpy as np
 
-from ser.utils import get_device
+from speech_emotion_recognition.utils import get_device
 
 
 class LoadableModule(torch.nn.Module):

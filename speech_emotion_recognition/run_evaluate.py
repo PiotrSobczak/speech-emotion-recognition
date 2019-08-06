@@ -4,11 +4,11 @@ import json
 from torch.nn import CrossEntropyLoss
 from os.path import isfile
 
-from ser.models import *
-from ser.model_utils import run_epoch_eval, search_for_optimal_alpha
-from ser.batch_iterator import BatchIterator, EnsembleBatchIterator
-from ser.data_loader import load_linguistic_dataset, load_spectrogram_dataset
-from ser.config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
+from speech_emotion_recognition.models import *
+from speech_emotion_recognition.model_utils import run_epoch_eval, search_for_optimal_alpha
+from speech_emotion_recognition.batch_iterator import BatchIterator, EnsembleBatchIterator
+from speech_emotion_recognition.data_loader import load_linguistic_dataset, load_spectrogram_dataset
+from speech_emotion_recognition.config import LinguisticConfig, AcousticSpectrogramConfig as AcousticConfig, EnsembleConfig
 
 
 SCORE_STR = "{}: loss: {}, acc: {}. unweighted acc: {}, conf_mat: \n{}"

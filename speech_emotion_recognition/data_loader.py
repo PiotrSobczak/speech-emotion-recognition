@@ -1,11 +1,11 @@
 import pickle
 from os.path import isfile, join
 
-from ser.word2vec_wrapper import Word2VecWrapper
-from ser.text_preprocessing import Preprocessor
-from ser.audio_preprocessing import *
-from ser.utils import timeit, log
-from ser.batch_iterator import BatchIterator
+from speech_emotion_recognition.word2vec_wrapper import Word2VecWrapper
+from speech_emotion_recognition.text_preprocessing import Preprocessor
+from speech_emotion_recognition.audio_preprocessing import *
+from speech_emotion_recognition.utils import timeit, log
+from speech_emotion_recognition.batch_iterator import BatchIterator
 
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"

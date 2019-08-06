@@ -5,8 +5,8 @@ import json
 import torch
 from tensorboardX import SummaryWriter
 
-from ser.model_utils import run_epoch_eval, run_epoch_train
-from ser.utils import get_datetime, log, log_major, log_success, get_device
+from speech_emotion_recognition.model_utils import run_epoch_eval, run_epoch_train
+from speech_emotion_recognition.utils import get_datetime, log, log_major, log_success, get_device
 
 
 MODEL_PATH = "saved_models"
