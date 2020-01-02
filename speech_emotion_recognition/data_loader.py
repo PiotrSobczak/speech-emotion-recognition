@@ -7,15 +7,6 @@ from speech_emotion_recognition.audio_preprocessing import *
 from speech_emotion_recognition.utils import timeit, log
 from speech_emotion_recognition.batch_iterator import BatchIterator
 
-"""
-1.Download IEMOCAP dataset from https://sail.usc.edu/iemocap/
-2.Use github.com/didi/delta/blob/master/egs/iemocap/emo/v1/local/python/mocap_data_collect.py to get dataset pickle
-3.Use create_balanced_iemocap() to get balanced version of iemocap dataset containing 4 classes
-4.Use load_<DATASET_TYPE>_dataset to load a specific dataset. 
-*The first time you use load functions it will be created from pickle. This might take a while...
-*The next time you use load functions you will load cached .npy files for faster loading
-"""
-
 IEMOCAP_PATH = "data/iemocap.pickle"
 IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
 IEMOCAP_BALANCED_ASR_PATH = "data/iemocap_balanced_asr.pickle"
