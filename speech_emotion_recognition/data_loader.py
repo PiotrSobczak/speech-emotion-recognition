@@ -16,8 +16,8 @@ from speech_emotion_recognition.batch_iterator import BatchIterator
 *The next time you use load functions you will load cached .npy files for faster loading
 """
 
-IEMOCAP_PATH = "data/iemocap.pickle"  # Path to entire pickled iemocap
-IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle" # Path to  pickled iemocap
+IEMOCAP_PATH = "data/iemocap.pickle"
+IEMOCAP_BALANCED_PATH = "data/iemocap_balanced.pickle"
 IEMOCAP_BALANCED_ASR_PATH = "data/iemocap_balanced_asr.pickle"
 IEMOCAP_FULL_PATH = "data/IEMOCAP_full_release"
 LINGUISTIC_DATASET_PATH = "data/linguistic_features.npy"
