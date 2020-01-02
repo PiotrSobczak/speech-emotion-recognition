@@ -67,6 +67,17 @@ Ensemble architectures make use of the most accurate acoustic and linguistic arc
 # Feature-level Ensemble Confusion Matrix
 <img src="https://github.com/PiotrSobczak/speech-emotion-recognition/blob/master/assets/confusion_matrix.png" width="600"></img>
 
+
+# How to prepare IEMOCAP dataset?
+- 1.Download IEMOCAP dataset from https://sail.usc.edu/iemocap/
+- 2.Create dataset pickle using this module:  
+https://github.com/didi/delta/blob/master/egs/iemocap/emo/v1/local/python/mocap_data_collect.py 
+- 3.Use create_balanced_iemocap() to get balanced version of iemocap dataset containing 4 classes
+- 4.Use load_<DATASET_TYPE>_dataset to load a specific dataset.   
+*The first time load datasets, they will be created from scratch and cached in .npy files. This might take a while. The next time you load datasets, you will load cached .npy files*   
+
+
+
 # How to run? 
 ### Run hyperparameter tuning
 ```
