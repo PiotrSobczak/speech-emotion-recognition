@@ -74,8 +74,8 @@ Ensemble architectures make use of the most accurate acoustic and linguistic arc
 https://github.com/didi/delta/blob/master/egs/iemocap/emo/v1/local/python/mocap_data_collect.py 
 - 3.Use create_balanced_iemocap() to get balanced version of iemocap dataset containing 4 classes
 - 4.Use load_<DATASET_TYPE>_dataset to load a specific dataset.   
-*The first time load datasets, they will be created from scratch and cached in .npy files. This might take a while. The next time you load datasets, you will load cached .npy files*   
-
+*The first time you load datasets, they will be created from scratch and cached in .npy files. This might take a while.*     
+*Next time you load datasets, they will be loaded from cached .npy files*   
 
 
 # How to run? 
