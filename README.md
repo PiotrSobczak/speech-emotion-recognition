@@ -5,7 +5,7 @@ The goal if this project is to create a multi-modal Speech Emotion Recogniton sy
 - Feb 2019 - IEMOCAP dataset aquisition and parsing
 - Mar 2019 - Baseline of linguistic model
 - Apr 2019 - Baseline of acoustic model
-- May 2019 - Integration and optimiaztion of both models
+- May 2019 - Integration and optimization of both models
 - Jun 2019 - Integration with open-source ASR(most likely DeepSpeech)
 
 
