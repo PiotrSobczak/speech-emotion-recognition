@@ -3,7 +3,7 @@ import pylab
 import skimage
 import wave
 
-from speech_emotion_recognition.iemocap_utils.features import stFeatureExtraction
+from speech_emotion_recognition.iemocap_utils.features import short_term_feature_extraction
 
 
 def calculate_acoustic_features(frames, freq, options):
@@ -11,7 +11,7 @@ def calculate_acoustic_features(frames, freq, options):
     window_sec = 0.08
     window_n = int(freq * window_sec)
 
-    st_f = stFeatureExtraction(frames, freq, window_n, window_n / 2)
+    st_f = short_term_feature_extraction(frames, freq, window_n, window_n / 2)
 
     if st_f.shape[1] > 2:
         i0 = 1
